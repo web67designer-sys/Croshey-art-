@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>CrochetCraft 3D · Bespoke Handmade Crochet</title>
+  <meta name="description" content="Design your custom crochet piece in stunning 3D. Real‑time colors, patterns, sizes and live pricing. Handcrafted luxury, made to order.">
+  <meta property="og:title" content="CrochetCraft 3D · Bespoke Handmade Crochet">
+  <meta property="og:description" content="Interactive 3D crochet customizer with real‑time preview. Luxury handcrafted pieces, made to order.">
+  <meta property="og:image" content="https://images.unsplash.com/photo-1604881991720-f91add269bed?w=1200&q=80">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['"Playfair Display"', 'Georgia', 'serif'],
+            body: ['"Inter"', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            base: '#FDFBF7',
+            'base-dark': '#F5EFEB',
+            ink: '#222222',
+            'ink-light': '#666666',
+            muted: '#666666',
+            rose: '#E0B89C',
+            'rose-dark': '#C49D7E',
+            gold: '#8C7A6B',
+            'gold-dark': '#6B5A4E',
+            sage: '#1A3322',
+            'sage-light': '#3B5E41',
+            terracotta: '#C67B5C',
+            obsidian: '#1E1E24',
+            charcoal: '#2D2A26',
+          },
+          animation: {
+            'fade-in': 'fadeIn 0.8s ease-out forwards',
+            'slide-up': 'slideUp 0.8s ease-out forwards',
+            'scale-in': 'scaleIn 0.4s ease-out forwards',
+            'float': 'float 6s ease-in-out infinite',
+            'float-delayed': 'float 7s ease-in-out 2s infinite',
+            'float-slow': 'float 8s ease-in-out 1s infinite',
+            'float-reverse': 'floatReverse 7s ease-in-out infinite',
+            'progress': 'progress 3s ease-out forwards',
+            'dot-glow': 'dotGlow 0.8s ease-in-out forwards',
+            'icon-pulse': 'iconPulse 3s ease-in-out infinite',
+            'spin-slow': 'spin 3s linear infinite',
+            'scroll': 'scroll 40s linear infinite',
+            'scroll-slow': 'scroll 25s linear infinite',
+            'cart-bounce': 'cartBounce 0.4s ease-out',
+            'drift': 'drift 12s ease-in-out infinite',
+          },
+          keyframes: {
+            fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+            slideUp: { '0%': { opacity: '0', transform: 'translateY(40px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+            scaleIn: { '0%': { opacity: '0', transform: 'scale(0.9)' }, '100%': { opacity: '1', transform: 'scale(1)' } },
+            float: { '0%,100%': { transform: 'translateY(0px) rotate(0deg)' }, '25%': { transform: 'translateY(-20px) rotate(3deg)' }, '50%': { transform: 'translateY(-8px) rotate(-2deg)' }, '75%': { transform: 'translateY(-25px) rotate(1deg)' } },
+            floatReverse: { '0%,100%': { transform: 'translateY(0px) rotate(0deg)' }, '25%': { transform: 'translateY(15px) rotate(-3deg)' }, '50%': { transform: 'translateY(5px) rotate(2deg)' }, '75%': { transform: 'translateY(20px) rotate(-1deg)' } },
+            progress: { '0%': { width: '0%' }, '100%': { width: '100%' } },
+            dotGlow: { '0%': { opacity: '0.25', transform: 'scale(0.6)', filter: 'blur(2px)' }, '60%': { opacity: '1', transform: 'scale(1.3)', filter: 'blur(0px)' }, '100%': { opacity: '0.9', transform: 'scale(1)', filter: 'blur(1px)' } },
+            iconPulse: { '0%,100%': { filter: 'drop-shadow(0 0 8px rgba(183,109,104,0.5))' }, '50%': { filter: 'drop-shadow(0 0 22px rgba(183,109,104,0.9))' } },
+            scroll: { '0%': { transform: 'translateX(0)' }, '100%': { transform: 'translateX(-33.333%)' } },
+            cartBounce: { '0%': { transform: 'scale(1)' }, '50%': { transform: 'scale(1.4)' }, '100%': { transform: 'scale(1)' } },
+            drift: { '0%,100%': { transform: 'translate(0, 0) rotate(0deg)' }, '33%': { transform: 'translate(30px, -20px) rotate(5deg)' }, '66%': { transform: 'translate(-20px, 15px) rotate(-3deg)' } },
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.min.js"></script>
+  <style>
+    * { scroll-behavior: smooth; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #FDFBF7; color: #222222; overflow-x: hidden; margin: 0; }
+    .font-display { font-family: 'Playfair Display', Georgia, serif; }
+    .font-montserrat { font-family: 'Montserrat', sans-serif; }
+    .glass { background: rgba(253,251,247,0.72); backdrop-filter: blur(20px); border: 1px solid rgba(140,122,107,0.15); }
+    .glass-card { background: rgba(253,251,247,0.65); backdrop-filter: blur(16px); border: 1px solid rgba(140,122,107,0.25); border-radius: 1.75rem; transition: all 0.4s cubic-bezier(0.25,0.46,0.45,0.94); }
+    .glass-card:hover { background: rgba(253,251,247,0.9); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.08); transform: translateY(-4px); border-color: rgba(224,184,156,0.3); }
+    .color-swatch { transition: all 0.3s ease; cursor: pointer; border: 3px solid transparent; border-radius: 50%; }
+    .color-swatch:hover { transform: scale(1.15); border-color: #8C7A6B; }
+    .color-swatch.selected { border-color: #E0B89C; box-shadow: 0 0 0 4px rgba(224,184,156,0.2); transform: scale(1.1); }
+    .pattern-option { transition: all 0.3s ease; cursor: pointer; border: 2px solid transparent; border-radius: 1rem; }
+    .pattern-option:hover { border-color: #8C7A6B; transform: translateY(-2px); }
+    .pattern-option.selected { border-color: #E0B89C; background: rgba(224,184,156,0.08); }
+    .size-btn { transition: all 0.3s ease; border-radius: 1rem; }
+    .size-btn.selected { background: #E0B89C; color: #FDFBF7; transform: scale(1.03); box-shadow: 0 10px 25px rgba(224,184,156,0.3); }
+    #three-canvas { cursor: grab; border-radius: 2rem; background: radial-gradient(circle at 50% 30%, #FDFBF7, #F5EFEB); box-shadow: inset 0 0 60px rgba(0,0,0,0.02), 0 25px 50px -12px rgba(0,0,0,0.1); }
+    #three-canvas:active { cursor: grabbing; }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    .btn-primary { background: #E0B89C; color: #FDFBF7; transition: all 0.3s ease; position: relative; overflow: hidden; border-radius: 1rem; font-weight: 600; letter-spacing: 0.04em; }
+    .btn-primary::after { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent); transition: left 0.5s; }
+    .btn-primary:hover::after { left: 100%; }
+    .btn-primary:hover { background: #C49D7E; transform: translateY(-2px); box-shadow: 0 20px 30px -10px rgba(224,184,156,0.5); }
+    .pattern-preview { border-radius: 0.5rem; border: 1px solid rgba(140,122,107,0.3); }
+    .preloader-overlay { position: fixed; inset: 0; z-index: 9999; background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; transition: opacity 0.9s cubic-bezier(0.4, 0, 0.2, 1); }
+    .preloader-overlay::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgba(253,251,247,0.08) 0%, rgba(26,51,34,0.12) 40%, rgba(30,30,36,0.4) 100%); z-index: 1; }
+    .preloader-overlay::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 25%, rgba(30,30,36,0.6) 100%); z-index: 2; pointer-events: none; }
+    .preloader-content { position: relative; z-index: 10; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+    .heart-coil-icon { animation: iconPulse 3s ease-in-out infinite; filter: drop-shadow(0 0 14px rgba(224,184,156,0.5)); }
+    .progress-dots { display: flex; gap: 10px; align-items: center; margin-top: 0.5rem; }
+    .progress-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(140,122,107,0.3); transition: all 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+    .progress-dot.active { background: #E0B89C; box-shadow: 0 0 16px 4px rgba(224,184,156,0.7), 0 0 30px 8px rgba(224,184,156,0.3); animation: dotGlow 0.8s ease-in-out forwards; }
+    .preloader-footer-bar { position: absolute; bottom: 0; left: 0; width: 100%; height: 4px; background: #1A3322; z-index: 10; opacity: 0.9; }
+    .admin-gear-btn { opacity: 0.35; transition: opacity 0.2s ease; cursor: pointer; background: none; border: none; padding: 0; display: inline-flex; align-items: center; }
+    .admin-gear-btn:hover { opacity: 0.7; }
+    .whatsapp-btn { position: fixed; bottom: 2rem; right: 2rem; z-index: 40; width: 3.5rem; height: 3.5rem; background: #25D366; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 25px rgba(0,0,0,0.2); transition: transform 0.3s; }
+    .whatsapp-btn:hover { transform: scale(1.1); }
+    /* Pure‑CSS carousel */
+    .slider-container { overflow: hidden; -webkit-mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%); mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%); }
+    .slider-track { display: flex; width: max-content; animation: scroll 40s linear infinite; }
+    .slider-track:hover { animation-play-state: paused; }
+    /* Masonry */
+    .masonry-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); grid-auto-rows: 200px; gap: 1.5rem; grid-auto-flow: dense; }
+    .masonry-tile { position: relative; overflow: hidden; border-radius: 8px; background: #ddd; }
+    .masonry-tile img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease; }
+    .masonry-tile.span-vertical { grid-row: span 2; }
+    .masonry-tile.span-horizontal { grid-column: span 2; }
+    .hover-veil { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease; text-align: center; padding: 1rem; }
+    .masonry-tile:hover .hover-veil { opacity: 1; }
+    .masonry-tile:hover img { transform: scale(1.05); }
+    /* Stepper */
+    .stepper-timeline { position: relative; padding-left: 2.5rem; margin: 1.5rem 0; }
+    .stepper-timeline::before { content: ''; position: absolute; left: 7px; top: 0; width: 2px; height: 100%; background: rgba(0,0,0,0.15); }
+    .stepper-fill { position: absolute; left: 7px; top: 0; width: 2px; height: 0%; background: #10B981; transition: height 0.8s ease; }
+    .step { position: relative; margin-bottom: 2rem; }
+    .step:last-child { margin-bottom: 0; }
+    .step-circle { position: absolute; left: -38px; top: 2px; width: 16px; height: 16px; border-radius: 50%; background: white; border: 2px solid #8C7A6B; transition: all 0.3s ease; }
+    .step.active .step-circle { background: #10B981; border-color: #10B981; box-shadow: 0 0 12px #10B981; }
+    /* Receipt */
+    .receipt-paper { background: white; color: #000; max-width: 500px; width: 90%; padding: 3rem; box-shadow: 0 20px 50px rgba(0,0,0,0.3); position: relative; font-family: 'Inter', sans-serif; }
+    .receipt-header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 1rem; margin-bottom: 2rem; }
+    .receipt-header h2 { font-family: 'Playfair Display', serif; font-size: 1.8rem; letter-spacing: 0.1em; }
+    .receipt-dashed { border-top: 1px dashed #666; margin: 1.5rem 0; }
+    @media print { body * { visibility: hidden; } #receiptModal, #receiptModal * { visibility: visible; } #receiptModal { position: absolute; left: 0; top: 0; width: 100%; height: auto; background: white; display: block; } .receipt-paper { box-shadow: none; max-width: 100%; padding: 0; } .btn-group { display: none; } }
+    .cart-badge-animate { animation: cartBounce 0.4s ease-out; }
+    .floating-bg { position: absolute; pointer-events: none; z-index: 0; opacity: 0.08; }
+    *:focus-visible { outline: 2px solid #8C7A6B; outline-offset: 2px; }
+    .skip-link { position: absolute; top: -100px; left: 0; z-index: 100; padding: 1rem; background: #8C7A6B; color: #1E1E24; transition: top 0.2s; }
+    .skip-link:focus { top: 0; }
+    @media (max-width: 640px) { .preloader-content { gap: 0.75rem; } .heart-coil-icon svg { width: 70px; height: 70px; } }
+  </style>
+</head>
+<body class="bg-base text-ink antialiased">
+<div id="root"></div>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script type="text/babel">
+const { useState, useEffect, useRef, useMemo, memo } = React;
+
+// ── DEFAULT PRODUCTS ──
+const DEFAULT_PRODUCTS = [
+  { id:1, name:'Amigurumi Bunny', category:'Toys', description:'Hand‑crocheted amigurumi bunny with embroidered details. Soft organic cotton yarn.', basePrice:800, geometry:'sphere', geoParams:{radius:1.2,wSegments:48,hSegments:48}, colors:['#F5E6D3','#D4A0A0','#A8C4A2','#C9B8D4','#F2C9B0','#FFFFFF','#9EB7C9'], patterns:['solid','striped','speckled'], sizes:[{name:'Small (6")',multiplier:1,dims:'15cm'},{name:'Medium (10")',multiplier:1.4,dims:'25cm'},{name:'Large (14")',multiplier:1.9,dims:'35cm'}], image:'https://images.unsplash.com/photo-1604881991720-f91add269bed?w=400&q=80', material:'100% Organic Cotton', care:'Hand wash, dry flat', weight:'DK', yarnBrand:'Drops Cotton Merino', recommendedHookSize:'3.5 mm', inStock:true, reviews:[{author:'Meera S.',rating:5,text:'Absolutely adorable!'}] },
+  { id:2, name:'Crochet Beanie', category:'Accessories', description:'Warm hand‑crocheted beanie with ribbed edge. Merino wool blend.', basePrice:600, geometry:'cone', geoParams:{radiusTop:0.15,radiusBottom:1.1,height:1.6,segments:48}, colors:['#C67B5C','#3D3027','#8B7D6B','#D4A0A0','#5C7A6B','#E8D5C0'], patterns:['solid','striped','chevron'], sizes:[{name:'Small',multiplier:1,dims:'54cm'},{name:'Medium',multiplier:1.15,dims:'57cm'},{name:'Large',multiplier:1.3,dims:'60cm'}], image:'https://images.unsplash.com/photo-1576871337632-b9aef4c17ab9?w=400&q=80', material:'Merino Wool Blend', care:'Hand wash cold, lay flat', weight:'Worsted', yarnBrand:'Malabrigo Rios', recommendedHookSize:'5 mm', inStock:true, reviews:[{author:'Priya M.',rating:5,text:'Perfect fit and so warm.'}] },
+  { id:3, name:'Boho Crochet Bag', category:'Bags', description:'Stylish boho tote with intricate stitchwork.', basePrice:1200, geometry:'cylinder', geoParams:{radiusTop:0.9,radiusBottom:0.95,height:1.8,segments:48}, colors:['#F5E6D3','#C9B8D4','#A8C4A2','#F2C9B0','#D4C5B9','#9EB7C9'], patterns:['solid','striped','speckled','chevron'], sizes:[{name:'Small',multiplier:1,dims:'25x20cm'},{name:'Medium',multiplier:1.35,dims:'32x25cm'},{name:'Large',multiplier:1.7,dims:'38x30cm'}], image:'https://images.unsplash.com/photo-1591561954557-26941169b49e?w=400&q=80', material:'Cotton‑Linen', care:'Spot clean', weight:'Aran', yarnBrand:'Lion Brand 24/7 Cotton', recommendedHookSize:'4.5 mm', inStock:false, reviews:[] },
+  { id:4, name:'Crochet Coaster Set', category:'Home', description:'Set of 4 hand‑crocheted coasters.', basePrice:400, geometry:'disc', geoParams:{radius:0.7,height:0.12,segments:48}, colors:['#F5E6D3','#D4A0A0','#A8C4A2','#C9B8D4','#F2C9B0','#FFFFFF','#C67B5C'], patterns:['solid','speckled'], sizes:[{name:'Standard (4")',multiplier:1,dims:'10cm'},{name:'Large (6")',multiplier:1.5,dims:'15cm'}], image:'https://images.unsplash.com/photo-1615529328331-f8917597711f?w=400&q=80', material:'Cotton', care:'Machine wash gentle', weight:'DK', yarnBrand:'Paintbox Yarns Cotton DK', recommendedHookSize:'4 mm', inStock:true, reviews:[{author:'Ananya P.',rating:4,text:'Lovely coasters, just the right thickness.'}] },
+  { id:5, name:'Chunky Blanket', category:'Home', description:'Super‑chunky hand‑crocheted throw.', basePrice:2500, geometry:'box', geoParams:{width:2.5,height:0.25,depth:1.8,segments:20}, colors:['#F5E6D3','#D4A0A0','#A8C4A2','#C9B8D4','#F2C9B0','#9EB7C9','#C67B5C'], patterns:['solid','striped','chevron'], sizes:[{name:'Throw (50x60")',multiplier:1,dims:'127x152cm'},{name:'Queen (90x90")',multiplier:2.2,dims:'229x229cm'}], image:'https://images.unsplash.com/photo-1580301762395-21ceb90f00b3?w=400&q=80', material:'Chenille', care:'Dry clean', weight:'Super Bulky', yarnBrand:'Bernat Blanket', recommendedHookSize:'8 mm', inStock:true, reviews:[{author:'Vikram S.',rating:5,text:'The coziest blanket ever.'}] },
+  { id:6, name:'Crochet Earrings', category:'Accessories', description:'Delicate hand‑crocheted earrings with gold hooks.', basePrice:300, geometry:'torus', geoParams:{radius:0.35,tube:0.08,radialSegments:32,tubularSegments:48}, colors:['#F5E6D3','#D4A0A0','#C9B8D4','#F2C9B0','#FFFFFF','#9EB7C9','#C67B5C'], patterns:['solid','speckled'], sizes:[{name:'Small (1.5")',multiplier:1,dims:'3.8cm'},{name:'Medium (2")',multiplier:1.3,dims:'5cm'}], image:'https://images.unsplash.com/photo-1630019852942-f89202989a59?w=400&q=80', material:'Cotton Thread', care:'Keep dry', weight:'Lace', yarnBrand:'DMC Cebelia', recommendedHookSize:'1.75 mm', inStock:true, reviews:[] },
+  { id:7, name:'Plant Hanger', category:'Home', description:'Macramé‑style crochet plant hanger.', basePrice:700, geometry:'cone', geoParams:{radiusTop:1.4,radiusBottom:0.3,height:2.2,segments:36}, colors:['#F5E6D3','#8B7D6B','#A8C4A2','#D4C5B9','#C67B5C'], patterns:['solid','striped'], sizes:[{name:'Small (24")',multiplier:1,dims:'61cm'},{name:'Large (48")',multiplier:1.8,dims:'122cm'}], image:'https://images.unsplash.com/photo-1614594975525-e45190c55d0b?w=400&q=80', material:'Cotton Cord', care:'Wipe clean', weight:'Bulky', yarnBrand:'Bobilon Cotton Rope', recommendedHookSize:'6 mm', inStock:true, reviews:[] },
+];
+
+const DEFAULT_DISCOUNT_CODES = { 'WELCOME10': 10, 'CROCHET20': 20, 'LUXURY15': 15 };
+const DEFAULT_SETTINGS = {
+  catImage: 'https://images.unsplash.com/photo-1598133893773-8aa79e3647e1?w=600&q=80',
+  loaderBg: 'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=1920&q=80',
+};
+
+function getDefaultGeoParams(geometry) {
+  switch(geometry) { case 'sphere': return { radius:1.2, wSegments:48, hSegments:48 }; case 'cylinder': return { radiusTop:0.9, radiusBottom:0.95, height:1.8, segments:48 }; case 'cone': return { radiusTop:0.15, radiusBottom:1.1, height:1.6, segments:48 }; case 'torus': return { radius:0.35, tube:0.08, radialSegments:32, tubularSegments:48 }; case 'disc': return { radius:0.7, height:0.12, segments:48 }; case 'box': return { width:2.5, height:0.25, depth:1.8, segments:20 }; default: return { radius:1.2, wSegments:48, hSegments:48 }; }
+}
+function hexToRgb(hex){ const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex); return r?{r:parseInt(r[1],16),g:parseInt(r[2],16),b:parseInt(r[3],16)}:{r:200,g:180,b:160}; }
+function createCrochetTexture(baseColorHex, pattern='solid', secHex=null) {
+  const c=document.createElement('canvas'); c.width=512; c.height=512; const ctx=c.getContext('2d');
+  ctx.fillStyle=baseColorHex; ctx.fillRect(0,0,512,512);
+  const base=hexToRgb(baseColorHex), dark=`rgb(${Math.max(0,base.r-30)},${Math.max(0,base.g-30)},${Math.max(0,base.b-30)})`, light=`rgb(${Math.min(255,base.r+25)},${Math.min(255,base.g+25)},${Math.min(255,base.b+25)})`;
+  let sec = secHex; if (!sec || sec === baseColorHex) sec = `rgb(${Math.min(255,base.r+40)},${Math.min(255,base.g+40)},${Math.min(255,base.b+40)})`;
+  const sz=18, sp=22;
+  for(let y=0;y<512+sp;y+=sp){ const ox=(Math.floor(y/sp)%2===0)?0:sp/2; for(let x=-sp;x<512+sp;x+=sp){ const cx=x+ox, cy=y; let fill=dark; if(pattern==='striped') fill=Math.floor(cy/(sp*3))%2===0?dark:sec; else if(pattern==='speckled') fill=Math.random()>0.35?dark:sec; else if(pattern==='chevron'){ const zig=Math.sin(cx*0.03)*40; fill=(cy+zig)%80<40?dark:sec; } ctx.fillStyle=fill; ctx.beginPath(); ctx.arc(cx,cy,sz*0.5,0,Math.PI*2); ctx.fill(); ctx.fillStyle=light; ctx.beginPath(); ctx.arc(cx-1,cy-1,sz*0.25,0,Math.PI*2); ctx.fill(); } }
+  const tex=new THREE.CanvasTexture(c); tex.wrapS=THREE.RepeatWrapping; tex.wrapT=THREE.RepeatWrapping; tex.colorSpace=THREE.SRGBColorSpace; tex.magFilter=THREE.LinearFilter; tex.minFilter=THREE.LinearMipmapLinearFilter;
+  tex.userData = { sourceCanvas: c };
+  return tex;
+}
+function useThreeScene(canvasRef, product, selectedColor, selectedPattern, selectedSize){
+  const animRef=useRef(null); const isDragging=useRef(false); const prevMouse=useRef({x:0,y:0}); const rotRef=useRef({x:0.3,y:0.5}); const autoRotate=useRef(true); const lastInteract=useRef(Date.now()); const debounceRef = useRef(null);
+  useEffect(()=>{
+    const canvas=canvasRef.current; if(!canvas||!product) return;
+    const w=canvas.clientWidth||500, h=canvas.clientHeight||500;
+    const scene=new THREE.Scene(); scene.background=null;
+    const camera=new THREE.PerspectiveCamera(42,w/h,0.1,20); camera.position.set(2.5,2.2,3.8); camera.lookAt(0,0.3,0);
+    const renderer=new THREE.WebGLRenderer({antialias:true, alpha:true, preserveDrawingBuffer: true}); renderer.setClearColor(0x000000,0); renderer.setSize(w,h); renderer.setPixelRatio(Math.min(window.devicePixelRatio,2)); renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.2;
+    canvas.innerHTML=''; canvas.appendChild(renderer.domElement);
+    const amb=new THREE.AmbientLight('#fff5ee',3.8); scene.add(amb);
+    const key=new THREE.DirectionalLight('#ffffff',6); key.position.set(5,6,4); key.castShadow=true; key.shadow.mapSize.set(1024,1024); key.shadow.bias=-0.0001; scene.add(key);
+    const fill=new THREE.DirectionalLight('#ffe0d0',2.5); fill.position.set(-2,1,-2); scene.add(fill);
+    const shadowPlane=new THREE.Mesh(new THREE.CircleGeometry(3,64), new THREE.ShadowMaterial({opacity:0.35})); shadowPlane.rotation.x=-Math.PI/2; shadowPlane.position.y=-1.4; shadowPlane.receiveShadow=true; scene.add(shadowPlane);
+    const tex=createCrochetTexture(selectedColor, selectedPattern, product.colors?.[1]);
+    const bump=createCrochetTexture('#888888', selectedPattern, '#666666');
+    const mat=new THREE.MeshStandardMaterial({map:tex, bumpMap:bump, bumpScale:0.06, roughness:0.65, metalness:0.02});
+    let geo; const gp=product.geoParams||{}; const sm=selectedSize?.multiplier||1;
+    switch(product.geometry){ case'sphere':geo=new THREE.SphereGeometry((gp.radius||1.2)*sm,gp.wSegments||48,gp.hSegments||48);break; case'cylinder':geo=new THREE.CylinderGeometry((gp.radiusTop||0.9)*sm,(gp.radiusBottom||0.95)*sm,(gp.height||1.8)*sm,gp.segments||48);break; case'cone':geo=new THREE.CylinderGeometry((gp.radiusTop||0.15)*sm,(gp.radiusBottom||1.1)*sm,(gp.height||1.6)*sm,gp.segments||48);break; case'torus':geo=new THREE.TorusGeometry((gp.radius||0.35)*sm,gp.tube||0.08,gp.radialSegments||32,gp.tubularSegments||48);break; case'disc':geo=new THREE.CylinderGeometry((gp.radius||0.7)*sm,(gp.radius||0.7)*sm,gp.height||0.12,gp.segments||48);break; case'box':geo=new THREE.BoxGeometry((gp.width||2.5)*sm,(gp.height||0.25)*sm,(gp.depth||1.8)*sm);break; default:geo=new THREE.SphereGeometry(1.2*sm,48,48); }
+    const mesh=new THREE.Mesh(geo,mat); mesh.castShadow=true; mesh.receiveShadow=true; mesh.position.y=0.15; scene.add(mesh);
+    const onDown=(e)=>{isDragging.current=true;autoRotate.current=false;lastInteract.current=Date.now();const rect=renderer.domElement.getBoundingClientRect();prevMouse.current={x:((e.clientX-rect.left)/rect.width)*2-1,y:-((e.clientY-rect.top)/rect.height)*2+1};};
+    const onMove=(e)=>{if(!isDragging.current)return;lastInteract.current=Date.now();const rect=renderer.domElement.getBoundingClientRect();const cx=((e.clientX-rect.left)/rect.width)*2-1,cy=-((e.clientY-rect.top)/rect.height)*2+1;rotRef.current.y+=(cx-prevMouse.current.x)*2.5;rotRef.current.x+=(cy-prevMouse.current.y)*2.5;rotRef.current.x=Math.max(-1.2,Math.min(1.2,rotRef.current.x));prevMouse.current={x:cx,y:cy};};
+    const onUp=()=>{isDragging.current=false;};
+    renderer.domElement.addEventListener('mousedown',onDown); window.addEventListener('mousemove',onMove); window.addEventListener('mouseup',onUp);
+    const anim=()=>{animRef.current=requestAnimationFrame(anim); if(!isDragging.current&&Date.now()-lastInteract.current>2000)autoRotate.current=true; if(autoRotate.current&&!isDragging.current)rotRef.current.y+=0.004; const rx=rotRef.current.x,ry=rotRef.current.y,dist=camera.position.z; camera.position.x=dist*Math.sin(ry)*Math.cos(rx); camera.position.y=dist*Math.sin(rx); camera.position.z=dist*Math.cos(ry)*Math.cos(rx); camera.lookAt(0,0.15,0); renderer.render(scene,camera);}; anim();
+    const onResize = () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        const w2 = canvas.clientWidth, h2 = canvas.clientHeight;
+        if (w2 && h2) {
+          renderer.setSize(w2, h2);
+          camera.aspect = w2 / h2;
+          camera.updateProjectionMatrix();
+        }
+      }, 150);
+    };
+    window.addEventListener('resize', onResize);
+    return ()=>{
+      cancelAnimationFrame(animRef.current);
+      renderer.domElement.removeEventListener('mousedown',onDown);
+      window.removeEventListener('mousemove',onMove);
+      window.removeEventListener('mouseup',onUp);
+      window.removeEventListener('resize',onResize);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      renderer.dispose();
+      scene.clear();
+      geo.dispose();
+      mat.map?.dispose();
+      mat.bumpMap?.dispose();
+      mat.dispose();
+    };
+  },[product?.id,selectedColor,selectedPattern,selectedSize?.name]);
+}
+
+const PatternPreview = memo(({ pattern, color }) => {
+  const canvasRef = useRef(null);
+  useEffect(() => {
+    const c = canvasRef.current;
+    if (!c) return;
+    const tex = createCrochetTexture(color, pattern);
+    const src = tex.userData?.sourceCanvas || tex.source.data;
+    const ctx = c.getContext('2d');
+    ctx.clearRect(0, 0, 60, 60);
+    if (src && src.nodeName === 'CANVAS') {
+      ctx.drawImage(src, 0, 0, 60, 60);
+    } else {
+      ctx.fillStyle = color;
+      ctx.fillRect(0, 0, 60, 60);
+    }
+  }, [pattern, color]);
+  return <canvas ref={canvasRef} width="60" height="60" className="pattern-preview w-14 h-14" />;
+});
+
+const CartIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>;
+const HeartIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>;
+const GearIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>;
+
+const HeartCoilIcon = () => (
+  <svg width="90" height="90" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="heart-coil-icon" aria-hidden="true">
+    <defs><radialGradient id="luxGlow" cx="50%" cy="45%" r="50%"><stop offset="0%" stopColor="#FDFBF7" stopOpacity="0.95"/><stop offset="45%" stopColor="#8C7A6B" stopOpacity="0.75"/><stop offset="100%" stopColor="#E0B89C" stopOpacity="0.50"/></radialGradient><filter id="softGlow"><feGaussianBlur stdDeviation="2.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+    <path d="M60 32 C60 22, 42 10, 30 20 C18 30, 18 48, 32 58 C38 62, 50 68, 60 78 C70 68, 82 62, 88 58 C102 48, 102 30, 90 20 C78 10, 60 22, 60 32 Z" fill="none" stroke="url(#luxGlow)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" filter="url(#softGlow)"/>
+    <path d="M34 22 C28 32, 22 42, 28 50 C34 56, 42 52, 38 44" fill="none" stroke="#8C7A6B" strokeWidth="1.4" strokeLinecap="round" opacity="0.75"/>
+    <path d="M86 22 C92 32, 98 42, 92 50 C86 56, 78 52, 82 44" fill="none" stroke="#8C7A6B" strokeWidth="1.4" strokeLinecap="round" opacity="0.75"/>
+    <circle cx="60" cy="82" r="6" fill="none" stroke="#E0B89C" strokeWidth="1.2" opacity="0.65"/>
+    <path d="M56 80 C50 88, 46 94, 52 98 C58 102, 64 98, 60 92" fill="none" stroke="#8C7A6B" strokeWidth="1" strokeLinecap="round" opacity="0.55"/>
+    <circle cx="60" cy="50" r="3" fill="#E0B89C" opacity="0.55"><animate attributeName="opacity" values="0.25;0.75;0.25" dur="2.5s" repeatCount="indefinite"/></circle>
+  </svg>
+);
+
+const FloatingBackground = memo(() => {
+  const elements = [
+    { type: 'yarn', size: 50, top: '10%', left: '5%', anim: 'float', delay: '0s' },
+    { type: 'hook', size: 40, top: '20%', right: '8%', anim: 'float-delayed', delay: '0.5s' },
+    { type: 'heart', size: 30, top: '50%', left: '10%', anim: 'float-reverse', delay: '1s' },
+    { type: 'star', size: 35, top: '65%', right: '5%', anim: 'float', delay: '1.5s' },
+    { type: 'yarn', size: 45, top: '75%', left: '80%', anim: 'float-delayed', delay: '0.8s' },
+    { type: 'heart', size: 25, top: '35%', right: '15%', anim: 'float', delay: '2s' },
+    { type: 'hook', size: 35, top: '80%', left: '20%', anim: 'float-reverse', delay: '1.2s' },
+    { type: 'star', size: 40, top: '15%', right: '25%', anim: 'float-delayed', delay: '0.3s' },
+  ];
+  const icons = {
+    yarn: <svg viewBox="0 0 60 60" fill="none" aria-hidden="true"><circle cx="30" cy="30" r="20" fill="none" stroke="#8C7A6B" strokeWidth="3" opacity="0.4"/><circle cx="30" cy="30" r="12" fill="none" stroke="#1A3322" strokeWidth="2" opacity="0.3"/><circle cx="30" cy="30" r="5" fill="#E0B89C" opacity="0.25"/></svg>,
+    hook: <svg viewBox="0 0 40 60" fill="none" aria-hidden="true"><path d="M20 0 L20 40 Q20 55 30 55 Q40 55 40 45" fill="none" stroke="#8C7A6B" strokeWidth="2.5" opacity="0.35"/><circle cx="18" cy="8" r="3" fill="none" stroke="#1A3322" strokeWidth="1.5" opacity="0.3"/></svg>,
+    heart: <svg viewBox="0 0 40 40" fill="none" aria-hidden="true"><path d="M20 35 C20 35 5 22 5 14 C5 8 10 4 15 6 C18 7 20 10 20 10 C20 10 22 7 25 6 C30 4 35 8 35 14 C35 22 20 35 20 35Z" fill="none" stroke="#E0B89C" strokeWidth="2" opacity="0.3"/></svg>,
+    star: <svg viewBox="0 0 40 40" fill="none" aria-hidden="true"><polygon points="20,2 25,16 39,16 28,26 32,40 20,31 8,40 12,26 1,16 15,16" fill="none" stroke="#8C7A6B" strokeWidth="1.5" opacity="0.3"/></svg>,
+  };
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
+      {elements.map((el, i) => (
+        <div key={i} className="floating-bg" style={{ top: el.top, left: el.left, right: el.right, width: el.size, height: el.size, animation: `${el.anim} 7s ease-in-out infinite`, animationDelay: el.delay }}>
+          {icons[el.type]}
+        </div>
+      ))}
+    </div>
+  );
+});
+
+const FadeInSection = memo(({ children, delay = 0 }) => {
+  const [isVisible, setVisible] = useState(false);
+  const domRef = useRef(null);
+  useEffect(() => { const observer = new IntersectionObserver(entries => { entries.forEach(entry => { if (entry.isIntersecting) setVisible(true); }); }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }); if (domRef.current) observer.observe(domRef.current); return () => observer.disconnect(); }, []);
+  return (
+    <div ref={domRef} className={`transition-all duration-700 ease-out ${isVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-95'}`} style={{ transitionDelay: `${delay}ms` }}>
+      {children}
+    </div>
+  );
+});
+
+function useCountUp(end, duration = 1000) {
+  const [count, setCount] = useState(0);
+  useEffect(() => { if (end <= 0) { setCount(0); return; } let start = null; let rafId; const step = (timestamp) => { if (!start) start = timestamp; const progress = Math.min((timestamp - start) / duration, 1); setCount(Math.floor(progress * end)); if (progress < 1) rafId = requestAnimationFrame(step); }; rafId = requestAnimationFrame(step); return () => cancelAnimationFrame(rafId); }, [end, duration]);
+  return count;
+}
+
+function LoadingScreen({ onComplete, bgImage }) {
+  const [fadeOut, setFadeOut] = useState(false); const [activeDots, setActiveDots] = useState(0); const totalDots = 7;
+  useEffect(() => { const dotInterval = setInterval(() => { setActiveDots(prev => { if (prev >= totalDots) { clearInterval(dotInterval); return prev; } return prev + 1; }); }, 380); const fadeTimer = setTimeout(() => { setFadeOut(true); setTimeout(onComplete, 900); }, 3100); return () => { clearInterval(dotInterval); clearTimeout(fadeTimer); }; }, [onComplete]);
+  return (
+    <div className={`preloader-overlay ${fadeOut ? 'opacity-0' : 'opacity-100'}`} style={{ pointerEvents: fadeOut ? 'none' : 'auto', backgroundImage: `url(${bgImage})` }}>
+      <div className="preloader-content px-6">
+        <div className="mb-2"><HeartCoilIcon /></div>
+        <h1 className="font-display text-5xl md:text-7xl font-bold text-[#FDFBF7] tracking-wide" style={{ textShadow: '0 3px 20px rgba(0,0,0,0.3)' }}>Crochet</h1>
+        <p className="font-display text-xl md:text-2xl italic text-[#FDFBF7]/90" style={{ textShadow: '0 1px 10px rgba(0,0,0,0.25)' }}>Woven Stories in Every Loop</p>
+        <div className="progress-dots mt-4">{Array.from({ length: totalDots }).map((_, i) => <div key={i} className={`progress-dot ${i < activeDots ? 'active' : ''}`} />)}</div>
+        <p className="text-xs text-[#FDFBF7]/50 font-montserrat tracking-[0.3em] uppercase mt-3">{activeDots >= totalDots ? 'Ready' : 'Loading'}</p>
+      </div>
+      <div className="preloader-footer-bar" />
+    </div>
+  );
+}
+
+function Navbar({cartCount,wishlistCount,onCartClick,onWishlistClick,scrollY,cartBounce}){
+  return (
+    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrollY>50?'glass shadow-sm py-3':'bg-transparent py-5'}`}>
+      <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
+        <a href="#" className="font-display text-2xl font-bold text-ink">CrochetCraft<span className="text-rose">3D</span></a>
+        <div className="flex gap-4">
+          <button onClick={onWishlistClick} className="relative p-2 rounded-full hover:bg-base-dark transition-colors" aria-label="Wishlist"><HeartIcon/> {wishlistCount>0&&<span className="absolute -top-1 -right-1 bg-rose text-base text-xs w-5 h-5 rounded-full flex items-center justify-center shadow-lg" aria-hidden="true">{wishlistCount}</span>}</button>
+          <button onClick={onCartClick} className="relative p-2 rounded-full hover:bg-base-dark transition-colors" aria-label="Cart"><CartIcon/> {cartCount>0&&<span className={`absolute -top-1 -right-1 bg-gold text-base text-xs w-5 h-5 rounded-full flex items-center justify-center shadow-lg ${cartBounce ? 'cart-badge-animate' : ''}`} aria-hidden="true">{cartCount}</span>}</button>
+        </div>
+      </div>
+    </nav>
+  );
+}
+
+function SizeGuideDiagram({ product }) {
+  const diagrams = {
+    'Crochet Beanie': <svg width="150" height="120" viewBox="0 0 150 120" aria-hidden="true"><ellipse cx="75" cy="60" rx="40" ry="30" fill="none" stroke="#8C7A6B" strokeWidth="2"/><path d="M35 60 Q35 20 75 20 Q115 20 115 60" fill="none" stroke="#8C7A6B" strokeWidth="2"/><line x1="35" y1="60" x2="35" y2="85" stroke="#8C7A6B" strokeWidth="2"/><line x1="115" y1="60" x2="115" y2="85" stroke="#8C7A6B" strokeWidth="2"/><text x="75" y="110" textAnchor="middle" fill="#666666" fontSize="12">Circumference</text></svg>,
+    'Boho Crochet Bag': <svg width="150" height="130" viewBox="0 0 150 130" aria-hidden="true"><rect x="30" y="20" width="90" height="80" fill="none" stroke="#8C7A6B" strokeWidth="2" rx="5"/><path d="M30 20 L10 0 L140 0 L120 20" fill="none" stroke="#8C7A6B" strokeWidth="2"/><line x1="10" y1="0" x2="10" y2="40" stroke="#8C7A6B" strokeWidth="2"/><text x="75" y="115" textAnchor="middle" fill="#666666" fontSize="12">Width x Height</text></svg>,
+    'Chunky Blanket': <svg width="150" height="100" viewBox="0 0 150 100" aria-hidden="true"><rect x="15" y="25" width="120" height="60" fill="none" stroke="#8C7A6B" strokeWidth="2"/><text x="75" y="15" textAnchor="middle" fill="#666666" fontSize="12">Width</text><text x="5" y="60" fill="#666666" fontSize="12">Height</text></svg>,
+    'Crochet Earrings': <svg width="80" height="80" viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="15" fill="none" stroke="#8C7A6B" strokeWidth="2"/><line x1="40" y1="55" x2="40" y2="70" stroke="#8C7A6B" strokeWidth="2"/></svg>,
+    'Plant Hanger': <svg width="150" height="150" viewBox="0 0 150 150" aria-hidden="true"><path d="M20 20 Q75 80 130 20" fill="none" stroke="#8C7A6B" strokeWidth="2"/><line x1="75" y1="80" x2="75" y2="140" stroke="#8C7A6B" strokeWidth="2"/><circle cx="75" cy="140" r="10" fill="none" stroke="#8C7A6B" strokeWidth="2"/></svg>,
+    'Crochet Coaster Set': <svg width="100" height="60" viewBox="0 0 100 60" aria-hidden="true"><circle cx="50" cy="30" r="25" fill="none" stroke="#8C7A6B" strokeWidth="2"/><line x1="50" y1="5" x2="50" y2="55" stroke="#8C7A6B" strokeWidth="2" strokeDasharray="4"/></svg>,
+    'Amigurumi Bunny': <svg width="100" height="130" viewBox="0 0 100 130" aria-hidden="true"><circle cx="50" cy="40" r="25" fill="none" stroke="#8C7A6B" strokeWidth="2"/><ellipse cx="35" cy="20" rx="12" ry="20" fill="none" stroke="#8C7A6B" strokeWidth="2"/><ellipse cx="65" cy="20" rx="12" ry="20" fill="none" stroke="#8C7A6B" strokeWidth="2"/><circle cx="50" cy="90" r="20" fill="none" stroke="#8C7A6B" strokeWidth="2"/></svg>
+  };
+  return diagrams[product.name] || null;
+}
+
+function SizeGuideModal({isOpen,onClose,product}){ if(!isOpen)return null; return (<div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/30 p-4 backdrop-blur-sm" onClick={onClose}><div className="bg-base rounded-3xl p-8 max-w-md w-full animate-scale-in shadow-2xl" onClick={e=>e.stopPropagation()}><h3 className="font-display text-2xl font-bold text-ink mb-4">Size Reference</h3><div className="flex flex-col items-center mb-4"><SizeGuideDiagram product={product} /></div>{product?.sizes?.map(s=><div key={s.name} className="flex justify-between py-2 text-muted"><span>{s.name}</span><span className="font-medium text-ink">{s.dims}</span></div>)}<div className="mt-4"><p className="text-xs text-muted">For best fit, measure a similar item and compare.</p></div><button onClick={onClose} className="mt-6 w-full py-3 bg-ink text-base rounded-xl hover:bg-ink-light transition">Close</button></div></div>);}
+function EstimatedDelivery(){ const today = new Date(); const deliveryDate = new Date(today); deliveryDate.setDate(today.getDate()+7); return <span>{deliveryDate.toLocaleDateString('en-IN', {day:'numeric', month:'long', year:'numeric'})}</span>; }
+function ProductReviews({reviews}){ if(!reviews||reviews.length===0) return <p className="text-sm text-muted italic">No reviews yet. Be the first to review!</p>; return (<div className="space-y-3">{reviews.map((r,i)=><div key={i} className="bg-base-dark/50 p-3 rounded-xl"><div className="flex items-center gap-2"><div className="flex" aria-hidden="true">{Array.from({length:5}).map((_,j)=><svg key={j} width="14" height="14" viewBox="0 0 24 24" fill={j<r.rating?'#8C7A6B':'none'} stroke="#8C7A6B" strokeWidth="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg>)}</div><span className="text-xs text-muted">{r.author}</span></div><p className="text-sm text-ink/80 mt-1">{r.text}</p></div>)}</div>);}
+function ProductDetailModal({product, onClose, onCustomize, onNotify}){ if(!product)return null; return (<div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-sm p-4" onClick={onClose}><div className="bg-base rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-scale-in" onClick={e=>e.stopPropagation()}><div className="grid md:grid-cols-2 gap-6 p-6"><div><img src={product.image} alt={product.name} className="w-full h-72 object-cover rounded-2xl" loading="lazy" decoding="async"/><div className="mt-4 flex gap-2">{product.colors.slice(0,4).map(c=><span key={c} className="w-8 h-8 rounded-full inline-block" style={{backgroundColor:c}} title={c}></span>)}</div></div><div><p className="text-gold text-xs uppercase tracking-wider">{product.category}</p><h2 className="font-display text-3xl font-bold text-ink mt-1">{product.name}</h2><p className="text-muted mt-2">{product.description}</p><div className="mt-4 space-y-1 text-sm"><p><span className="font-medium text-ink">Material:</span> {product.material}</p><p><span className="font-medium text-ink">Care:</span> {product.care}</p><p><span className="font-medium text-ink">Weight:</span> {product.weight}</p><p><span className="font-medium text-ink">Brand:</span> {product.yarnBrand}</p><p><span className="font-medium text-ink">Hook:</span> {product.recommendedHookSize}</p></div><div className="mt-4"><span className={`px-3 py-1 rounded-full text-xs font-medium ${product.inStock?'bg-sage/20 text-sage':'bg-rose/20 text-rose'}`}>{product.inStock?'In Stock':'Sold Out'}</span></div><div className="mt-6 flex gap-3">{product.inStock ? <button onClick={()=>{onCustomize(product);onClose();}} className="flex-1 py-3 btn-primary rounded-xl">Customize This Piece</button> : <button onClick={()=>onNotify(product)} className="flex-1 py-3 bg-rose/20 text-rose rounded-xl font-semibold">Notify Me When Available</button>}</div></div></div><div className="px-6 pb-6"><h3 className="font-display text-xl font-bold text-ink mb-3">Customer Reviews</h3><ProductReviews reviews={product.reviews}/></div></div></div>);}
+
+// ── PURE CSS CAROUSEL FOR "AS SEEN IN" ──
+function AsSeenIn() {
+  const logos = ['VOGUE', 'ELLE', 'HOMES & GARDENS', 'MARIE CLAIRE', 'DESIGN MILK'];
+  const tripled = [...logos, ...logos, ...logos];
+  return (
+    <section className="py-10 bg-base-dark/20 overflow-hidden">
+      <p className="text-center text-xs tracking-[0.2em] text-muted mb-6 uppercase">As Seen In</p>
+      <div className="slider-container">
+        <div className="slider-track gap-12" style={{ animation: 'scroll-slow 25s linear infinite' }}>
+          {tripled.map((name, i) => (
+            <span key={i} className="text-2xl font-display text-ink/40 whitespace-nowrap">{name}</span>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── PURE CSS CAROUSEL FOR "YOU MAY ALSO LIKE" ──
+function ProductSlider({products, onSelect}) {
+  const tripled = useMemo(() => [...products, ...products, ...products], [products]);
+  return (
+    <div className="mt-10" key={products.length}>
+      <h3 className="font-display text-2xl font-bold text-ink mb-4">You May Also Like</h3>
+      <div className="slider-container">
+        <div className="slider-track">
+          {tripled.map((p, idx) => (
+            <div key={`${p.id}-${idx}`} className="flex-shrink-0 w-56 mx-3 glass-card p-4 cursor-pointer" onClick={() => onSelect(p)}>
+              <img src={p.image} alt={p.name} className="w-full h-32 object-cover rounded-xl mb-2" loading="lazy" decoding="async" />
+              <p className="text-sm font-semibold text-ink truncate">{p.name}</p>
+              <p className="text-xs text-muted">From ₹{p.basePrice}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── MASONRY GALLERY FOR "STYLED BY YOU" ──
+function CustomerGallery(){
+  const images = [
+    { src: 'https://images.unsplash.com/photo-1604881990409-d45e393e1a7f?w=400&q=80', handle: '@CozyMaker', span: 'vertical' },
+    { src: 'https://images.unsplash.com/photo-1591561954557-26941169b49e?w=400&q=80', handle: '@UrbanKnit', span: 'horizontal' },
+    { src: 'https://images.unsplash.com/photo-1576871337632-b9aef4c17ab9?w=400&q=80', handle: '@BotanicalWeave', span: '' },
+    { src: 'https://images.unsplash.com/photo-1615529328331-f8917597711f?w=400&q=80', handle: '@RusticHome', span: '' },
+    { src: 'https://images.unsplash.com/photo-1580301762395-21ceb90f00b3?w=400&q=80', handle: '@PetiteLuxe', span: 'vertical' },
+  ];
+  const [enlarged, setEnlarged] = useState(null);
+  return (
+    <section className="py-16 px-6">
+      <div className="max-w-7xl mx-auto text-center">
+        <p className="text-gold uppercase tracking-[0.2em] text-sm">✦ Customer Gallery</p>
+        <h2 className="font-display text-4xl font-bold mt-2 mb-8 text-ink">Styled by <span className="italic text-rose">You</span></h2>
+        <div className="masonry-grid">
+          {images.map((img, i) => (
+            <div key={i} className={`masonry-tile ${img.span === 'vertical' ? 'span-vertical' : img.span === 'horizontal' ? 'span-horizontal' : ''}`} onClick={() => setEnlarged(img.src)}>
+              <img src={img.src} alt="Customer crochet piece" loading="lazy" decoding="async"/>
+              <div className="hover-veil">
+                <span className="handle">{img.handle}</span>
+                <a href="#" onClick={e => e.stopPropagation()}>Shop Collection</a>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="mt-4 text-muted text-sm">#CrochetCraft3D</p>
+      </div>
+      {enlarged && <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/80 p-4" onClick={() => setEnlarged(null)}><img src={enlarged} className="max-w-full max-h-[90vh] rounded-2xl" /></div>}
+    </section>
+  );
+}
+
+// ── ORDER TRACKING WITH ANIMATED STEPPER ──
+function OrderTrackingModal({isOpen, onClose, orders}){
+  const [email, setEmail] = useState('');
+  const [orderId, setOrderId] = useState('');
+  const [found, setFound] = useState(null);
+  const [stepperStatus, setStepperStatus] = useState('processing');
+
+  const handleSearch = () => {
+    const order = orders.find(o => o.orderId === orderId && o.customer.email.toLowerCase() === email.toLowerCase());
+    setFound(order || null);
+    if (order) {
+      if (order.status === 'Shipped') setStepperStatus('shipped');
+      else if (order.status === 'Delivered') setStepperStatus('delivered');
+      else setStepperStatus('processing');
+    }
+  };
+
+  useEffect(() => { if (!isOpen) { setEmail(''); setOrderId(''); setFound(null); } }, [isOpen]);
+
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/30 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="bg-base rounded-3xl p-8 max-w-lg w-full shadow-2xl animate-scale-in" onClick={e => e.stopPropagation()}>
+        <h3 className="font-display text-2xl font-bold text-ink mb-4">Track Your Order</h3>
+        {!found ? (
+          <div className="space-y-3">
+            <input placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} className="w-full p-3 border border-gold/20 rounded-xl bg-base text-ink"/>
+            <input placeholder="Order ID" value={orderId} onChange={e => setOrderId(e.target.value)} className="w-full p-3 border border-gold/20 rounded-xl bg-base text-ink"/>
+            <button onClick={handleSearch} className="w-full py-3 bg-rose text-base rounded-xl font-semibold">Find Order</button>
+            {email && found === null && <p className="text-rose text-sm mt-3">No order found.</p>}
+          </div>
+        ) : (
+          <div>
+            <div className="mb-4">
+              <p className="text-sm text-muted">Order #{found.orderId}</p>
+              <p className="text-sm text-muted">{found.date}</p>
+            </div>
+            <div className="stepper-timeline">
+              <div className="stepper-fill" style={{ height: stepperStatus === 'processing' ? '0%' : stepperStatus === 'shipped' ? '50%' : '100%' }}></div>
+              <div className={`step ${stepperStatus !== 'processing' ? 'active' : ''}`}>
+                <div className="step-circle"></div>
+                <div className="step-content">
+                  <h3 className="font-semibold">Order Verified</h3>
+                  <p className="text-xs text-muted">Your payment has been processed.</p>
+                </div>
+              </div>
+              <div className={`step ${stepperStatus === 'shipped' || stepperStatus === 'delivered' ? 'active' : ''}`}>
+                <div className="step-circle"></div>
+                <div className="step-content">
+                  <h3 className="font-semibold">Item Dispatched</h3>
+                  <p className="text-xs text-muted">Package is on its way to you.</p>
+                </div>
+              </div>
+              <div className={`step ${stepperStatus === 'delivered' ? 'active' : ''}`}>
+                <div className="step-circle"></div>
+                <div className="step-content">
+                  <h3 className="font-semibold">Delivered</h3>
+                  <p className="text-xs text-muted">Enjoy your handcrafted item!</p>
+                </div>
+              </div>
+            </div>
+            <div className="mt-6 flex justify-between items-center">
+              <span className="text-sm text-muted">Status: <span className="font-medium text-ink">{found.status}</span></span>
+              <button onClick={() => { setFound(null); setEmail(''); setOrderId(''); }} className="text-sm text-gold hover:underline">Track another</button>
+            </div>
+          </div>
+        )}
+        <button onClick={onClose} className="mt-4 w-full text-sm text-muted">Close</button>
+      </div>
+    </div>
+  );
+}
+
+// ── LUXURY RECEIPT MODAL (PRINT OPTIMIZED) ──
+function ReceiptModal({order, onClose}){
+  if (!order) return null;
+  const itemsTotal = order.items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+  const discountAmount = order.discount ? (itemsTotal * order.discount / 100) : 0;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/30 backdrop-blur-sm p-4" id="receiptModal" onClick={onClose}>
+      <div className="receipt-paper" onClick={e => e.stopPropagation()}>
+        <div className="receipt-header">
+          <h2>ARTISAN HOUSE</h2>
+          <p style={{ fontSize: '0.8rem' }}>Transaction Receipt • {order.date}</p>
+        </div>
+        <table style={{ width: '100%', fontSize: '0.9rem', lineHeight: '2' }}>
+          <tbody>
+            <tr><td><strong>Order ID:</strong></td><td style={{ textAlign: 'right' }}>{order.orderId}</td></tr>
+            <tr><td><strong>Customer:</strong></td><td style={{ textAlign: 'right' }}>{order.customer.name}</td></tr>
+            <tr><td><strong>Email:</strong></td><td style={{ textAlign: 'right' }}>{order.customer.email}</td></tr>
+            <tr><td><strong>Address:</strong></td><td style={{ textAlign: 'right' }}>{order.customer.address}</td></tr>
+          </tbody>
+        </table>
+        <div className="receipt-dashed"></div>
+        <p><strong>Items:</strong></p>
+        <div style={{ margin: '0.5rem 0' }}>
+          {order.items.map((item, idx) => (
+            <div key={idx}>{item.quantity}x {item.productName} — ₹{item.price.toLocaleString('en-IN')} each</div>
+          ))}
+        </div>
+        {order.gift && <p style={{ fontStyle: 'italic', marginTop: '0.5rem' }}>Gift: {order.giftNote}</p>}
+        <div className="receipt-dashed"></div>
+        <table style={{ width: '100%', fontSize: '1rem' }}>
+          <tbody>
+            <tr><td>Subtotal</td><td style={{ textAlign: 'right' }}>₹{itemsTotal.toLocaleString('en-IN')}</td></tr>
+            {order.discount > 0 && <tr><td>Discount ({order.discount}%)</td><td style={{ textAlign: 'right' }}>-₹{discountAmount.toLocaleString('en-IN')}</td></tr>}
+            <tr style={{ fontWeight: 'bold', borderTop: '1px solid #000' }}><td style={{ paddingTop: '0.5rem' }}>Total</td><td style={{ textAlign: 'right' }}>₹{order.total.toLocaleString('en-IN')}</td></tr>
+          </tbody>
+        </table>
+        <div className="btn-group" style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
+          <button onClick={() => window.print()} style={{ flex: 1, padding: '0.8rem', background: '#1A3322', color: 'white', border: 'none', cursor: 'pointer' }}>Print Receipt</button>
+          <button onClick={onClose} style={{ flex: 1, padding: '0.8rem', background: 'transparent', border: '1px solid #000', color: '#000', cursor: 'pointer' }}>Close</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CheckoutForm({cart, onPlaceOrder, onBack}){
+  const [form,setForm]=useState({name:'',email:'',phone:'',address:''});
+  const handleSubmit=(e)=>{e.preventDefault(); onPlaceOrder(form);};
+  return (<div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/30 backdrop-blur-sm p-4"><div className="bg-base rounded-3xl max-w-lg w-full shadow-2xl animate-scale-in p-8"><h2 className="font-display text-2xl font-bold mb-6">Shipping Details</h2><form onSubmit={handleSubmit} className="space-y-4"><input required placeholder="Full Name" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} className="w-full p-3 border border-gold/20 rounded-xl bg-base text-ink"/><input required type="email" placeholder="Email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} className="w-full p-3 border border-gold/20 rounded-xl bg-base text-ink"/><input required placeholder="Phone" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} className="w-full p-3 border border-gold/20 rounded-xl bg-base text-ink"/><textarea required placeholder="Address" value={form.address} onChange={e=>setForm({...form,address:e.target.value})} className="w-full p-3 border border-gold/20 rounded-xl bg-base text-ink" rows="2"/><div className="flex gap-3"><button type="button" onClick={onBack} className="flex-1 py-3 border border-gold/30 rounded-xl text-ink">Back</button><button type="submit" className="flex-1 py-3 bg-rose text-base rounded-xl font-semibold">Place Order</button></div></form></div></div>);
+}
+
+function MakerStory({ catImage }){
+  return (<section className="py-20 px-6 bg-base"><div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center gap-10"><div className="flex-1"><img src={catImage} alt="Handcrafted crochet cat" className="rounded-3xl shadow-2xl w-full h-80 object-cover" loading="lazy" decoding="async"/><p className="text-xs text-muted mt-2 italic text-center">The Crochet Cat Studio — our handcrafted mascot</p></div><div className="flex-1"><p className="text-gold uppercase text-sm">✦ Our Philosophy</p><h2 className="font-display text-4xl font-bold mt-2 mb-4 text-ink">Crafted by Hand, <span className="italic text-rose">Cherished Forever</span></h2><p className="text-muted leading-relaxed">Every stitch carries intention. From sustainable yarns to timeless designs, we create pieces that transcend seasons.</p><p className="mt-6 italic text-muted">— Priya, Founder &amp; Master Crochet Artist</p></div></div></section>);
+}
+
+// ═══════════════════════ ADMIN PANEL ═══════════════════════
+function AdminPanel({products, setProducts, orders, setOrders, notifications, setNotifications, settings, setSettings, discountCodes, setDiscountCodes}){
+  const [isOpen, setIsOpen] = useState(false); const [auth, setAuth] = useState(false); const [pass, setPass] = useState(''); const [adminPass, setAdminPass] = useState(() => localStorage.getItem('cc_admin_pass') || ''); const [setup, setSetup] = useState(!adminPass); const [newPass, setNewPass] = useState('');
+  const handleLogin = () => { if (pass === adminPass) setAuth(true); };
+  const handleSetup = () => { if (newPass.length >= 4) { localStorage.setItem('cc_admin_pass', newPass); setAdminPass(newPass); setSetup(false); setAuth(true); } };
+  if (!isOpen) return (<button onClick={() => setIsOpen(true)} className="admin-gear-btn" title="Admin" aria-label="Admin panel"><GearIcon /></button>);
+  if (!auth) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-obsidian/80 backdrop-blur-md" onClick={() => setIsOpen(false)}>
+        <div className="bg-obsidian border border-gold/20 rounded-2xl p-8 w-full max-w-sm mx-4 shadow-2xl" onClick={e => e.stopPropagation()}>
+          {setup ? ( <div className="space-y-4"><h3 className="text-xl font-bold text-base">Set Admin Password</h3><input type="password" value={newPass} onChange={e => setNewPass(e.target.value)} className="w-full p-3 bg-obsidian border border-gold/30 rounded-xl text-base" placeholder="New password" /><button onClick={handleSetup} className="w-full py-3 bg-gold text-obsidian rounded-xl font-semibold">Set Password</button></div> ) : ( <div className="space-y-4"><h3 className="text-xl font-bold text-base">Admin Login</h3><input type="password" value={pass} onChange={e => setPass(e.target.value)} className="w-full p-3 bg-obsidian border border-gold/30 rounded-xl text-base" placeholder="Password" /><button onClick={handleLogin} className="w-full py-3 bg-gold text-obsidian rounded-xl font-semibold">Login</button></div> )}
+          <button onClick={() => setIsOpen(false)} className="mt-4 w-full text-sm text-muted">Cancel</button>
+        </div>
+      </div>
+    );
+  }
+  return <AdminDashboard products={products} setProducts={setProducts} orders={orders} setOrders={setOrders} notifications={notifications} setNotifications={setNotifications} settings={settings} setSettings={setSettings} discountCodes={discountCodes} setDiscountCodes={setDiscountCodes} onLogout={() => setAuth(false)} />;
+}
+
+function AdminDashboard({ products, setProducts, orders, setOrders, notifications, setNotifications, settings, setSettings, discountCodes, setDiscountCodes, onLogout }) {
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newProduct, setNewProduct] = useState({ name: '', category:'Toys', basePrice:500, geometry:'sphere', colors:'#F5E6D3,#D4A0A0', patterns:'solid,striped', sizes:'[{"name":"Standard","multiplier":1,"dims":"20cm"}]', image:'', material:'Cotton', care:'Hand wash', weight:'DK', yarnBrand:'', recommendedHookSize:'', careIcons:'hand-wash,dry-flat', geoParams: JSON.stringify(getDefaultGeoParams('sphere')) });
+  const [orderSearch, setOrderSearch] = useState('');
+  const [productSearch, setProductSearch] = useState('');
+  const [productCategoryFilter, setProductCategoryFilter] = useState('All');
+  const [catImageUrl, setCatImageUrl] = useState(settings.catImage);
+  const [loaderBgUrl, setLoaderBgUrl] = useState(settings.loaderBg);
+  const [discCodeInput, setDiscCodeInput] = useState('');
+  const [discPercentInput, setDiscPercentInput] = useState(10);
+
+  const totalRevenue = orders.reduce((s,o)=>s+o.total,0);
+  const totalOrders = orders.length;
+  const avgOrderValue = totalOrders>0?Math.round(totalRevenue/totalOrders):0;
+  const topProduct = useMemo(()=>{const c={};orders.forEach(o=>o.items.forEach(i=>c[i.productName]=(c[i.productName]||0)+1));return Object.entries(c).sort((a,b)=>b[1]-a[1])[0]?.[0]||'—';},[orders]);
+  const customers = useMemo(()=>{const m={};orders.forEach(o=>{if(!m[o.customer.email])m[o.customer.email]={name:o.customer.name,email:o.customer.email,orders:0,spent:0};m[o.customer.email].orders++;m[o.customer.email].spent+=o.total;});return Object.values(m);},[orders]);
+  const processingCount = orders.filter(o=>!o.status||o.status==='Processing').length;
+
+  const animatedRevenue = useCountUp(totalRevenue, 1500);
+  const animatedOrders = useCountUp(totalOrders, 1000);
+  const animatedAvg = useCountUp(avgOrderValue, 1000);
+
+  const updateOrderStatus = (id,status)=>{setOrders(orders.map(o=>o.orderId===id?{...o,status}:o));};
+  const toggleStock = (id)=>{setProducts(products.map(p=>p.id===id?{...p,inStock:!p.inStock}:p));};
+
+  const handleAddProduct = ()=>{
+    const id = Math.max(0,...products.map(p=>p.id))+1;
+    let sizes, geoParams;
+    try{sizes=JSON.parse(newProduct.sizes);}catch(e){alert('Invalid sizes JSON');return;}
+    try{geoParams=JSON.parse(newProduct.geoParams);}catch(e){alert('Invalid geoParams JSON');return;}
+    const np = { id, name:newProduct.name, category:newProduct.category, basePrice:newProduct.basePrice, geometry:newProduct.geometry, colors:newProduct.colors.split(',').map(c=>c.trim()), patterns:newProduct.patterns.split(',').map(p=>p.trim()), sizes, image:newProduct.image||'https://images.unsplash.com/photo-1604881991720-f91add269bed?w=400&q=80', material:newProduct.material, care:newProduct.care, weight:newProduct.weight, yarnBrand:newProduct.yarnBrand, recommendedHookSize:newProduct.recommendedHookSize, careIcons:newProduct.careIcons.split(',').map(ic=>ic.trim()), geoParams, inStock:true, reviews:[] };
+    setProducts([...products,np]);
+    setShowAddForm(false);
+  };
+
+  const handleUpdateProduct = ()=>{
+    if(!editingProduct)return;
+    let sizes, geoParams;
+    try{sizes=typeof editingProduct.sizes==='string'?JSON.parse(editingProduct.sizes):editingProduct.sizes;}catch(e){alert('Invalid sizes');return;}
+    try{geoParams=typeof editingProduct.geoParams==='string'?JSON.parse(editingProduct.geoParams):editingProduct.geoParams;}catch(e){alert('Invalid geoParams');return;}
+    const updated = {...editingProduct, colors:Array.isArray(editingProduct.colors)?editingProduct.colors:editingProduct.colors.split(',').map(c=>c.trim()), patterns:Array.isArray(editingProduct.patterns)?editingProduct.patterns:editingProduct.patterns.split(',').map(p=>p.trim()), sizes, geoParams, careIcons: Array.isArray(editingProduct.careIcons)?editingProduct.careIcons:editingProduct.careIcons.split(',').map(ic=>ic.trim()) };
+    setProducts(products.map(p=>p.id===updated.id?updated:p));
+    setEditingProduct(null);
+  };
+
+  const saveSettings = () => {
+    const newSettings = { catImage: catImageUrl, loaderBg: loaderBgUrl };
+    setSettings(newSettings);
+    localStorage.setItem('cc_settings', JSON.stringify(newSettings));
+    alert('Settings saved!');
+  };
+
+  const handleImageUpload = (e, setter, current) => { const file = e.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = (ev) => setter(ev.target.result); reader.readAsDataURL(file); };
+
+  const exportCSV = ()=>{const csv="OrderID,Date,Customer,Items,Total\n"+orders.map(o=>`${o.orderId},${o.date},${o.customer.name},"${o.items.map(i=>i.productName+' x'+i.quantity).join(';')}",${o.total}`).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv]));a.download='orders.csv';a.click();};
+  const exportProducts = ()=>{const blob=new Blob([JSON.stringify(products)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='products.json';a.click();};
+  const importProducts = (e)=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=(ev)=>{try{const data=JSON.parse(ev.target.result);if(Array.isArray(data))setProducts(data);}catch(ex){alert('Invalid file');}};reader.readAsText(file);};
+
+  const salesChartRef = useRef(null);
+  useEffect(()=>{ if(activeTab==='dashboard'&&salesChartRef.current&&orders.length>0){ const ctx=salesChartRef.current.getContext('2d'); const cw=salesChartRef.current.clientWidth||400; salesChartRef.current.width=cw; ctx.clearRect(0,0,cw,150); const today=new Date(); const last7=[]; for(let i=6;i>=0;i--){const d=new Date(today);d.setDate(d.getDate()-i);last7.push(d.toLocaleDateString('en-IN',{day:'numeric',month:'short'}));} const daily={}; orders.forEach(o=>{const d=new Date(o.date);if(!isNaN(d)){const key=d.toLocaleDateString('en-IN',{day:'numeric',month:'short'});daily[key]=(daily[key]||0)+o.total;}}); const values=last7.map(day=>daily[day]||0); const max=Math.max(...values,1); const barWidth=Math.max(15,(cw-20)/last7.length-8), gap=Math.max(4,barWidth*0.2); last7.forEach((day,i)=>{const x=i*(barWidth+gap)+5; const barHeight=(values[i]/max)*120; ctx.fillStyle='#8C7A6B'; ctx.fillRect(x,140-barHeight,barWidth,barHeight); ctx.fillStyle='#222222'; ctx.font='9px Inter'; ctx.fillText(day,x,155);}); } },[orders,activeTab]);
+
+  const filteredOrders = orders.filter(o=>{if(!orderSearch)return true; const s=orderSearch.toLowerCase(); return o.orderId.toLowerCase().includes(s)||o.customer.name.toLowerCase().includes(s);});
+  const filteredProducts = products.filter(p=>{const matchCat=productCategoryFilter==='All'||p.category===productCategoryFilter; const matchSearch=p.name.toLowerCase().includes(productSearch.toLowerCase()); return matchCat&&matchSearch;});
+
+  const addDiscountCode = () => {
+    const code = discCodeInput.trim().toUpperCase();
+    if (!code || isNaN(discPercentInput) || discPercentInput <= 0) return alert('Invalid code/percentage');
+    const newCodes = { ...discountCodes, [code]: parseFloat(discPercentInput) };
+    setDiscountCodes(newCodes);
+    setDiscCodeInput('');
+    setDiscPercentInput(10);
+  };
+
+  const removeDiscountCode = (code) => {
+    const newCodes = { ...discountCodes };
+    delete newCodes[code];
+    setDiscountCodes(newCodes);
+  };
+
+  const ImagePreview = ({ src }) => { if (!src) return null; return <img src={src} alt="preview" className="w-24 h-24 object-cover rounded-xl border border-gold/20 mt-2" />; };
+
+  return (
+    <div className="fixed inset-0 z-50 flex bg-obsidian">
+      <div className="w-64 bg-obsidian border-r border-gold/10 text-base flex flex-col">
+        <div className="p-6 font-display text-2xl font-bold tracking-wide text-gold">CrochetCraft<span className="text-base">3D</span></div>
+        <nav className="flex-1 space-y-1 px-4">
+          <button onClick={()=>setActiveTab('dashboard')} className={`w-full text-left py-3 px-4 rounded-xl flex items-center gap-3 transition ${activeTab==='dashboard'?'bg-gold/20 text-gold':'text-base/60 hover:text-base'}`}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> Dashboard{processingCount>0 && <span className="ml-auto w-2 h-2 rounded-full bg-rose"></span>}</button>
+          <button onClick={()=>setActiveTab('products')} className={`w-full text-left py-3 px-4 rounded-xl flex items-center gap-3 transition ${activeTab==='products'?'bg-gold/20 text-gold':'text-base/60 hover:text-base'}`}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg> Products</button>
+          <button onClick={()=>setActiveTab('orders')} className={`w-full text-left py-3 px-4 rounded-xl flex items-center gap-3 transition ${activeTab==='orders'?'bg-gold/20 text-gold':'text-base/60 hover:text-base'}`}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Orders</button>
+          <button onClick={()=>setActiveTab('customers')} className={`w-full text-left py-3 px-4 rounded-xl flex items-center gap-3 transition ${activeTab==='customers'?'bg-gold/20 text-gold':'text-base/60 hover:text-base'}`}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Customers</button>
+          <button onClick={()=>setActiveTab('notifications')} className={`w-full text-left py-3 px-4 rounded-xl flex items-center gap-3 transition ${activeTab==='notifications'?'bg-gold/20 text-gold':'text-base/60 hover:text-base'}`}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> Notifications ({notifications.length})</button>
+          <button onClick={()=>setActiveTab('discounts')} className={`w-full text-left py-3 px-4 rounded-xl flex items-center gap-3 transition ${activeTab==='discounts'?'bg-gold/20 text-gold':'text-base/60 hover:text-base'}`}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg> Discount Codes</button>
+          <button onClick={()=>setActiveTab('settings')} className={`w-full text-left py-3 px-4 rounded-xl flex items-center gap-3 transition ${activeTab==='settings'?'bg-gold/20 text-gold':'text-base/60 hover:text-base'}`}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Settings</button>
+        </nav>
+        <div className="p-4 border-t border-gold/10"><button onClick={onLogout} className="text-sm text-base/50 hover:text-gold transition">Logout</button></div>
+      </div>
+      <div className="flex-1 flex flex-col overflow-hidden bg-obsidian/90">
+        <header className="bg-obsidian/80 backdrop-blur-md border-b border-gold/10 px-8 py-4 flex justify-between items-center">
+          <h1 className="text-2xl font-display font-bold text-base capitalize">{activeTab}</h1>
+          <div className="flex gap-4">
+            <label className="text-sm bg-gold/10 text-gold px-3 py-1.5 rounded-xl cursor-pointer hover:bg-gold/20 transition"><input type="file" accept=".json" onChange={importProducts} className="hidden"/> Import</label>
+            <button onClick={exportProducts} className="text-sm bg-gold/10 text-gold px-3 py-1.5 rounded-xl hover:bg-gold/20 transition">Export</button>
+          </div>
+        </header>
+        <div className="flex-1 overflow-y-auto p-8">
+          {activeTab==='dashboard'&&(<><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"><div className="bg-obsidian/60 backdrop-blur-md border border-gold/10 rounded-2xl p-5 shadow-lg"><p className="text-xs text-base/40 uppercase">Total Revenue</p><p className="text-3xl font-bold mt-2 text-base">₹{animatedRevenue.toLocaleString('en-IN')}</p></div><div className="bg-obsidian/60 backdrop-blur-md border border-gold/10 rounded-2xl p-5 shadow-lg"><p className="text-xs text-base/40 uppercase">Orders</p><p className="text-3xl font-bold mt-2 text-base">{animatedOrders}</p></div><div className="bg-obsidian/60 backdrop-blur-md border border-gold/10 rounded-2xl p-5 shadow-lg"><p className="text-xs text-base/40 uppercase">Avg. Order</p><p className="text-3xl font-bold mt-2 text-base">₹{animatedAvg.toLocaleString('en-IN')}</p></div><div className="bg-obsidian/60 backdrop-blur-md border border-gold/10 rounded-2xl p-5 shadow-lg"><p className="text-xs text-base/40 uppercase">Top Product</p><p className="text-lg font-semibold mt-2 text-base truncate">{topProduct}</p></div></div><div className="bg-obsidian/60 backdrop-blur-md border border-gold/10 rounded-2xl p-5 shadow-lg"><h3 className="font-display text-lg font-semibold text-base mb-4">Daily Sales (Last 7 Days)</h3><canvas ref={salesChartRef} height="150" className="w-full h-40"/></div></>)}
+          {activeTab==='products'&&(<div><div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h2 className="text-xl font-semibold text-base">Products ({filteredProducts.length})</h2><div className="flex gap-3 w-full md:w-auto"><input placeholder="Search..." value={productSearch} onChange={e=>setProductSearch(e.target.value)} className="px-4 py-2 bg-obsidian border border-gold/20 rounded-xl text-base text-sm w-full md:w-48"/><select value={productCategoryFilter} onChange={e=>setProductCategoryFilter(e.target.value)} className="px-3 py-2 bg-obsidian border border-gold/20 rounded-xl text-base text-sm"><option>All</option><option>Toys</option><option>Accessories</option><option>Bags</option><option>Home</option></select><button onClick={()=>setShowAddForm(true)} className="px-5 py-2 bg-gold text-obsidian rounded-xl text-sm font-semibold hover:bg-gold-dark transition whitespace-nowrap">+ Add Product</button></div></div><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">{filteredProducts.map(p=>(<div key={p.id} className="bg-obsidian/60 backdrop-blur-md border border-gold/10 rounded-xl p-4 shadow-lg flex justify-between items-start"><div className="flex gap-3"><img src={p.image} alt={p.name} className="w-12 h-12 rounded-lg object-cover" loading="lazy" decoding="async"/><div><p className="font-semibold text-base">{p.name}</p><p className="text-xs text-base/40">₹{p.basePrice} · {p.category}</p><button onClick={()=>toggleStock(p.id)} className={`text-xs font-medium ${p.inStock?'text-sage-light':'text-rose'}`}>{p.inStock?'In Stock':'Sold Out'}</button></div></div><div className="flex gap-2"><button onClick={()=>setEditingProduct({...p})} className="text-xs text-gold hover:underline">Edit</button><button onClick={()=>setProducts(products.filter(x=>x.id!==p.id))} className="text-xs text-rose hover:underline">Delete</button></div></div>))}</div></div>)}
+          {activeTab==='orders'&&(<div><div className="flex justify-between items-center mb-6"><h2 className="text-xl font-semibold text-base">Orders ({filteredOrders.length})</h2><div className="flex gap-3"><input placeholder="Search by ID or customer..." value={orderSearch} onChange={e=>setOrderSearch(e.target.value)} className="px-4 py-2 bg-obsidian border border-gold/20 rounded-xl text-base text-sm w-64"/><button onClick={exportCSV} className="text-sm text-gold hover:underline">Export CSV</button></div></div><div className="bg-obsidian/60 backdrop-blur-md border border-gold/10 rounded-xl shadow-lg overflow-hidden"><table className="w-full text-sm"><thead className="border-b border-gold/10 text-base/40"><tr><th className="text-left p-4">Order ID</th><th className="text-left p-4">Customer</th><th className="text-left p-4">Date</th><th className="text-right p-4">Total</th><th className="p-4">Status</th></tr></thead><tbody>{filteredOrders.slice().reverse().map((o,i)=>(<tr key={i} className="border-t border-gold/5 hover:bg-obsidian/80 transition"><td className="p-4 font-mono text-gold">{o.orderId}</td><td className="p-4 text-base">{o.customer.name}</td><td className="p-4 text-base/60">{o.date}</td><td className="p-4 text-right font-semibold text-base">₹{o.total.toLocaleString('en-IN')}</td><td className="p-4"><select value={o.status||'Processing'} onChange={e=>updateOrderStatus(o.orderId,e.target.value)} className="bg-obsidian border border-gold/20 rounded px-2 py-1 text-xs text-base"><option>Processing</option><option>Shipped</option><option>Delivered</option></select></td></tr>))}</tbody></table></div></div>)}
+          {activeTab==='customers'&&(<div><h2 className="text-xl font-semibold text-base mb-6">Customers ({customers.length})</h2><div className="bg-obsidian/60 backdrop-blur-md border border-gold/10 rounded-xl shadow-lg overflow-hidden"><table className="w-full text-sm"><thead className="border-b border-gold/10 text-base/40"><tr><th className="text-left p-4">Name</th><th className="text-left p-4">Email</th><th className="text-center p-4">Orders</th><th className="text-right p-4">Total Spent</th></tr></thead><tbody>{customers.map((c,i)=>(<tr key={i} className="border-t border-gold/5 hover:bg-obsidian/80 transition"><td className="p-4 text-base">{c.name}</td><td className="p-4 text-base/60">{c.email}</td><td className="p-4 text-center text-gold">{c.orders}</td><td className="p-4 text-right font-semibold text-base">₹{c.spent.toLocaleString('en-IN')}</td></tr>))}</tbody></table></div></div>)}
+          {activeTab==='notifications'&&(<div><h2 className="text-xl font-semibold text-base mb-6">Notify Me Requests ({notifications.length})</h2><div className="bg-obsidian/60 backdrop-blur-md border border-gold/10 rounded-xl shadow-lg overflow-hidden"><table className="w-full text-sm"><thead className="border-b border-gold/10 text-base/40"><tr><th className="text-left p-4">Email</th><th className="text-left p-4">Product</th><th className="text-left p-4">Date</th></tr></thead><tbody>{notifications.map((n,i)=>(<tr key={i} className="border-t border-gold/5 hover:bg-obsidian/80 transition"><td className="p-4 text-base">{n.email}</td><td className="p-4 text-base/60">{n.productName}</td><td className="p-4 text-base/60">{n.date}</td></tr>))}</tbody></table></div></div>)}
+          {activeTab==='discounts'&&(<div><h2 className="text-xl font-semibold text-base mb-6">Discount Codes</h2><div className="flex gap-2 mb-4"><input placeholder="Code (e.g. WELCOME10)" value={discCodeInput} onChange={e=>setDiscCodeInput(e.target.value)} className="px-4 py-2 bg-obsidian border border-gold/20 rounded-xl text-base flex-1"/><input type="number" placeholder="% Off" value={discPercentInput} onChange={e=>setDiscPercentInput(parseFloat(e.target.value))} className="px-4 py-2 bg-obsidian border border-gold/20 rounded-xl text-base w-24"/><button onClick={addDiscountCode} className="px-5 py-2 bg-gold text-obsidian rounded-xl font-semibold hover:bg-gold-dark transition">Add</button></div><div className="bg-obsidian/60 backdrop-blur-md border border-gold/10 rounded-xl shadow-lg overflow-hidden"><table className="w-full text-sm"><thead className="border-b border-gold/10 text-base/40"><tr><th className="text-left p-4">Code</th><th className="text-center p-4">Discount</th><th className="p-4">Action</th></tr></thead><tbody>{Object.entries(discountCodes).map(([code, percent])=><tr key={code} className="border-t border-gold/5 hover:bg-obsidian/80 transition"><td className="p-4 font-mono text-gold">{code}</td><td className="p-4 text-center text-base">{percent}%</td><td className="p-4"><button onClick={()=>removeDiscountCode(code)} className="text-xs text-rose hover:underline">Delete</button></td></tr>)}</tbody></table></div></div>)}
+          {activeTab==='settings'&&(<div className="max-w-2xl"><h2 className="text-xl font-semibold text-base mb-6">Site Settings</h2><div className="space-y-6"><div className="bg-obsidian/60 backdrop-blur-md border border-gold/10 rounded-2xl p-5 shadow-lg"><h3 className="font-display text-lg font-semibold text-base mb-3">Crochet Cat Image (Maker Story)</h3><div className="flex gap-4 items-start"><div className="flex-1 space-y-2"><input placeholder="Image URL" value={catImageUrl} onChange={e=>setCatImageUrl(e.target.value)} className="w-full p-2 bg-obsidian border border-gold/20 rounded text-base"/><label className="bg-gold/10 text-gold px-3 py-1.5 rounded-xl cursor-pointer inline-block text-sm">Upload Image<input type="file" accept="image/*" onChange={(e)=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=(ev)=>setCatImageUrl(ev.target.result);reader.readAsDataURL(file);}} className="hidden"/></label></div><ImagePreview src={catImageUrl} /></div></div><div className="bg-obsidian/60 backdrop-blur-md border border-gold/10 rounded-2xl p-5 shadow-lg"><h3 className="font-display text-lg font-semibold text-base mb-3">Loading Page Background</h3><div className="flex gap-4 items-start"><div className="flex-1 space-y-2"><input placeholder="Image URL" value={loaderBgUrl} onChange={e=>setLoaderBgUrl(e.target.value)} className="w-full p-2 bg-obsidian border border-gold/20 rounded text-base"/><label className="bg-gold/10 text-gold px-3 py-1.5 rounded-xl cursor-pointer inline-block text-sm">Upload Image<input type="file" accept="image/*" onChange={(e)=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=(ev)=>setLoaderBgUrl(ev.target.result);reader.readAsDataURL(file);}} className="hidden"/></label></div><ImagePreview src={loaderBgUrl} /></div></div><button onClick={saveSettings} className="px-8 py-3 bg-gold text-obsidian rounded-xl font-semibold hover:bg-gold-dark transition">Save Settings</button></div></div>)}
+        </div>
+      </div>
+      {showAddForm&&(<div className="fixed inset-0 bg-obsidian/70 backdrop-blur-sm flex items-center justify-center z-50" onClick={()=>setShowAddForm(false)}><div className="bg-obsidian border border-gold/20 rounded-2xl p-6 w-full max-w-lg mx-4 space-y-3 max-h-[80vh] overflow-y-auto shadow-2xl" onClick={e=>e.stopPropagation()}><h3 className="font-bold text-lg text-base">New Product</h3><input placeholder="Name" value={newProduct.name} onChange={e=>setNewProduct({...newProduct,name:e.target.value})} className="w-full p-2 bg-obsidian border border-gold/20 rounded text-base"/><select value={newProduct.category} onChange={e=>setNewProduct({...newProduct,category:e.target.value})} className="w-full p-2 bg-obsidian border border-gold/20 rounded text-base"><option>Toys</option><option>Accessories</option><option>Bags</option><option>Home</option></select><input type="number" placeholder="Base Price" value={newProduct.basePrice} onChange={e=>setNewProduct({...newProduct,basePrice:parseInt(e.target.value)})} className="w-full p-2 bg-obsidian border border-gold/20 rounded text-base"/><select value={newProduct.geometry} onChange={e=>setNewProduct({...newProduct,geometry:e.target.value,geoParams:JSON.stringify(getDefaultGeoParams(e.target.value))})} className="w-full p-2 bg-obsidian border border-gold/20 rounded text-base"><option>sphere</option><option>cylinder</option><option>cone</option><option>torus</option><option>disc</option><option>box</option></select><textarea placeholder="Geo Params (JSON)" value={newProduct.geoParams} onChange={e=>setNewProduct({...newProduct,geoParams:e.target.value})} className="w-full p-2 bg-obsidian border border-gold/20 rounded text-base text-sm" rows="3"/><div className="flex flex-col gap-2"><label className="text-base/40 text-xs">Product Image</label><input placeholder="Image URL" value={newProduct.image} onChange={e=>setNewProduct({...newProduct,image:e.target.value})} className="w-full p-2 bg-obsidian border border-gold/20 rounded text-base"/><label className="bg-gold/10 text-gold px-3 py-1.5 rounded-xl cursor-pointer text-center text-sm">Or Upload Image<input type="file" accept="image/*" onChange={(e)=>handleImageUpload(e,setNewProduct,newProduct)} className="hidden"/></label><ImagePreview src={newProduct.image} /></div><input placeholder="Material" value={newProduct.material} onChange={e=>setNewProduct({...newProduct,material:e.target.value})} className="w-full p-2 bg-obsidian border border-gold/20 rounded text-base"/><input placeholder="Care" value={newProduct.care} onChange={e=>setNewProduct({...newProduct,care:e.target.value})} className="w-full p-2 bg-obsidian border border-gold/20 rounded text-base"/><input placeholder="Yarn Weight" value={newProduct.weight} onChange={e=>setNewProduct({...newProduct,weight:e.target.value})} className="w-full p-2 bg-obsidian border border-gold/20 rounded text-base"/><input placeholder="Yarn Brand" value={newProduct.yarnBrand} onChange={e=>setNewProduct({...newProduct,yarnBrand:e.target.value})} className="w-full p-2 bg-obsidian border border-gold/20 rounded text-base"/><input placeholder="Recommended Hook Size" value={newProduct.recommendedHookSize} onChange={e=>setNewProduct({...newProduct,recommendedHookSize:e.target.value})} className="w-full p-2 bg-obsidian border border-gold/20 rounded text-base"/><input placeholder="Care Icons (comma)" value={newProduct.careIcons} onChange={e=>setNewProduct({...newProduct,careIcons:e.target.value})} className="w-full p-2 bg-obsidian border border-gold/20 rounded text-base"/><button onClick={handleAddProduct} className="w-full py-2 bg-gold text-obsidian rounded-xl font-semibold hover:bg-gold-dark transition">Create Product</button></div></div>)}
+      {editingProduct&&(<div className="fixed inset-0 bg-obsidian/70 backdrop-blur-sm flex items-center justify-center z-50" onClick={()=>setEditingProduct(null)}><div className="bg-obsidian border border-gold/20 rounded-2xl p-6 w-full max-w-lg mx-4 space-y-3 max-h-[80vh] overflow-y-auto shadow-2xl" onClick={e=>e.stopPropagation()}><h3 className="font-bold text-lg text-base">Edit {editingProduct.name}</h3><input value={editingProduct.name} onChange={e=>setEditingProduct({...editingProduct,name:e.target.value})} className="w-full p-2 bg-obsidian border border-gold/20 rounded text-base"/><input type="number" value={editingProduct.basePrice} onChange={e=>setEditingProduct({...editingProduct,basePrice:parseInt(e.target.value)})} className="w-full p-2 bg-obsidian border border-gold/20 rounded text-base"/><select value={editingProduct.category} onChange={e=>setEditingProduct({...editingProduct,category:e.target.value})} className="w-full p-2 bg-obsidian border border-gold/20 rounded text-base"><option>Toys</option><option>Accessories</option><option>Bags</option><option>Home</option></select><select value={editingProduct.geometry} onChange={e=>setEditingProduct({...editingProduct,geometry:e.target.value})} className="w-full p-2 bg-obsidian border border-gold/20 rounded text-base"><option>sphere</option><option>cylinder</option><option>cone</option><option>torus</option><option>disc</option><option>box</option></select><textarea placeholder="Geo Params (JSON)" value={typeof editingProduct.geoParams==='string'?editingProduct.geoParams:JSON.stringify(editingProduct.geoParams)} onChange={e=>setEditingProduct({...editingProduct,geoParams:e.target.value})} className="w-full p-2 bg-obsidian border border-gold/20 rounded text-base text-sm" rows="3"/><div className="flex flex-col gap-2"><label className="text-base/40 text-xs">Product Image</label><input placeholder="Image URL" value={editingProduct.image||''} onChange={e=>setEditingProduct({...editingProduct,image:e.target.value})} className="w-full p-2 bg-obsidian border border-gold/20 rounded text-base"/><label className="bg-gold/10 text-gold px-3 py-1.5 rounded-xl cursor-pointer text-center text-sm">Or Upload Image<input type="file" accept="image/*" onChange={(e)=>handleImageUpload(e,setEditingProduct,editingProduct)} className="hidden"/></label><ImagePreview src={editingProduct.image} /></div><input value={Array.isArray(editingProduct.colors)?editingProduct.colors.join(', '):editingProduct.colors} onChange={e=>setEditingProduct({...editingProduct,colors:e.target.value})} className="w-full p-2 bg-obsidian border border-gold/20 rounded text-base" placeholder="Colors (comma)"/><input value={Array.isArray(editingProduct.patterns)?editingProduct.patterns.join(', '):editingProduct.patterns} onChange={e=>setEditingProduct({...editingProduct,patterns:e.target.value})} className="w-full p-2 bg-obsidian border border-gold/20 rounded text-base" placeholder="Patterns (comma)"/><textarea value={typeof editingProduct.sizes==='string'?editingProduct.sizes:JSON.stringify(editingProduct.sizes)} onChange={e=>setEditingProduct({...editingProduct,sizes:e.target.value})} className="w-full p-2 bg-obsidian border border-gold/20 rounded text-base" rows="2" placeholder="Sizes (JSON)"/><input placeholder="Material" value={editingProduct.material||''} onChange={e=>setEditingProduct({...editingProduct,material:e.target.value})} className="w-full p-2 bg-obsidian border border-gold/20 rounded text-base"/><input placeholder="Care" value={editingProduct.care||''} onChange={e=>setEditingProduct({...editingProduct,care:e.target.value})} className="w-full p-2 bg-obsidian border border-gold/20 rounded text-base"/><input placeholder="Weight" value={editingProduct.weight||''} onChange={e=>setEditingProduct({...editingProduct,weight:e.target.value})} className="w-full p-2 bg-obsidian border border-gold/20 rounded text-base"/><input placeholder="Yarn Brand" value={editingProduct.yarnBrand||''} onChange={e=>setEditingProduct({...editingProduct,yarnBrand:e.target.value})} className="w-full p-2 bg-obsidian border border-gold/20 rounded text-base"/><input placeholder="Hook Size" value={editingProduct.recommendedHookSize||''} onChange={e=>setEditingProduct({...editingProduct,recommendedHookSize:e.target.value})} className="w-full p-2 bg-obsidian border border-gold/20 rounded text-base"/><input placeholder="Care Icons (comma)" value={Array.isArray(editingProduct.careIcons)?editingProduct.careIcons.join(', '):editingProduct.careIcons} onChange={e=>setEditingProduct({...editingProduct,careIcons:e.target.value})} className="w-full p-2 bg-obsidian border border-gold/20 rounded text-base"/><button onClick={handleUpdateProduct} className="w-full py-2 bg-gold text-obsidian rounded-xl font-semibold hover:bg-gold-dark transition">Save Changes</button></div></div>)}
+    </div>
+  );
+}
+
+// ═══════════════════════ MAIN APP ═══════════════════════
+function App() {
+  const [loading, setLoading] = useState(true);
+  const [heroVisible, setHeroVisible] = useState(false);
+  const [settings, setSettings] = useState(() => { const saved = localStorage.getItem('cc_settings'); return saved ? JSON.parse(saved) : DEFAULT_SETTINGS; });
+  const [products, setProducts] = useState(() => JSON.parse(localStorage.getItem('cc_products')) || DEFAULT_PRODUCTS);
+  const [orders, setOrders] = useState(() => JSON.parse(localStorage.getItem('cc_orders')) || []);
+  const [notifications, setNotifications] = useState(() => JSON.parse(localStorage.getItem('cc_notifications')) || []);
+  const [discountCodes, setDiscountCodes] = useState(() => JSON.parse(localStorage.getItem('cc_discounts')) || DEFAULT_DISCOUNT_CODES);
+  const [selected, setSelected] = useState(products[0]);
+  const [color, setColor] = useState(products[0].colors[0]);
+  const [pattern, setPattern] = useState(products[0].patterns[0]);
+  const [size, setSize] = useState(products[0].sizes[0]);
+  const [cart, setCart] = useState(() => JSON.parse(localStorage.getItem('cc_cart')) || []);
+  const [wishlist, setWishlist] = useState(() => JSON.parse(localStorage.getItem('cc_wishlist')) || []);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [wishOpen, setWishOpen] = useState(false);
+  const [checkoutStep, setCheckoutStep] = useState(null);
+  const [gift, setGift] = useState(false);
+  const [giftNote, setGiftNote] = useState('');
+  const [customerForm, setCustomerForm] = useState(null);
+  const [receiptOrder, setReceiptOrder] = useState(null);
+  const [trackOpen, setTrackOpen] = useState(false);
+  const [detailProduct, setDetailProduct] = useState(null);
+  const [scrollY, setScrollY] = useState(0);
+  const [discountCode, setDiscountCode] = useState('');
+  const [appliedDiscount, setAppliedDiscount] = useState(0);
+  const [discountError, setDiscountError] = useState('');
+  const [cartBounce, setCartBounce] = useState(false);
+  const [addFeedback, setAddFeedback] = useState(false);
+  const [visitorCount, setVisitorCount] = useState(42);
+  const [emailPopupVisible, setEmailPopupVisible] = useState(false);
+  const [emailSubmitted, setEmailSubmitted] = useState(false);
+
+  const canvasRef = useRef(null);
+  useThreeScene(canvasRef, selected, color, pattern, size);
+
+  useEffect(() => { if (!loading) setTimeout(() => setHeroVisible(true), 100); }, [loading]);
+  useEffect(()=>{localStorage.setItem('cc_settings',JSON.stringify(settings));},[settings]);
+  useEffect(()=>{localStorage.setItem('cc_products',JSON.stringify(products));},[products]);
+  useEffect(()=>{localStorage.setItem('cc_cart',JSON.stringify(cart));},[cart]);
+  useEffect(()=>{localStorage.setItem('cc_wishlist',JSON.stringify(wishlist));},[wishlist]);
+  useEffect(()=>{localStorage.setItem('cc_orders',JSON.stringify(orders));},[orders]);
+  useEffect(()=>{localStorage.setItem('cc_notifications',JSON.stringify(notifications));},[notifications]);
+  useEffect(()=>{localStorage.setItem('cc_discounts',JSON.stringify(discountCodes));},[discountCodes]);
+  useEffect(()=>{const h=()=>setScrollY(window.scrollY);window.addEventListener('scroll',h,{passive:true});return ()=>window.removeEventListener('scroll',h);},[]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setVisitorCount(prev => Math.max(2, prev + Math.floor(Math.random() * 7) - 3));
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (localStorage.getItem('subscribed')) return;
+    const timer = setTimeout(() => setEmailPopupVisible(true), 10000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleEmailSubmit = (e) => { e.preventDefault(); localStorage.setItem('subscribed', 'true'); setEmailSubmitted(true); };
+
+  const selectProduct = (p) => { setSelected(p); setColor(p.colors[0]); setPattern(p.patterns[0]); setSize(p.sizes[0]); document.getElementById('customize')?.scrollIntoView({behavior:'smooth'}); };
+  const addToCart = () => { if (!selected.inStock) return; setCart([...cart, { productId: selected.id, productName: selected.name, color, pattern, sizeName: size.name, price: Math.round(selected.basePrice * size.multiplier), quantity: 1 }]); setAddFeedback(true); setCartBounce(true); document.getElementById('feedback-message').textContent = 'Item added to cart'; setTimeout(() => { setAddFeedback(false); setCartBounce(false); }, 1000); };
+  const addToWishlist = () => { setWishlist([...wishlist, { productId: selected.id, productName: selected.name, color, pattern, sizeName: size.name }]); };
+  const moveWishToCart = (i) => { const w = wishlist[i]; const prod = products.find(p => p.id === w.productId); if (prod) { const sz = prod.sizes.find(s => s.name === w.sizeName) || prod.sizes[0]; setCart([...cart, { ...w, price: Math.round(prod.basePrice * sz.multiplier), quantity: 1 }]); } setWishlist(wishlist.filter((_, idx) => idx !== i)); };
+  const placeOrder = (customer) => { const order = { orderId: 'CC-' + Date.now().toString(36), date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }), customer, items: cart.map(i => ({ ...i })), gift, giftNote, discount: appliedDiscount, total: cart.reduce((s, i) => s + i.price * (i.quantity || 1), 0) * (1 - appliedDiscount/100), status: 'Processing' }; setOrders([...orders, order]); setCart([]); setAppliedDiscount(0); setDiscountCode(''); setReceiptOrder(order); setCheckoutStep(null); };
+  const handleNotify = (product) => { const email = prompt('Enter your email to be notified when this item is back in stock:'); if (email) { setNotifications([...notifications, { email, productName: product.name, date: new Date().toLocaleDateString('en-IN') }]); alert('You will be notified!'); } };
+  const applyDiscount = () => { const code = discountCode.trim().toUpperCase(); if (discountCodes[code]) { setAppliedDiscount(discountCodes[code]); setDiscountError(''); } else { setAppliedDiscount(0); setDiscountError('Invalid discount code'); } };
+  const cartTotal = cart.reduce((s,i)=>s+i.price*(i.quantity||1),0);
+  const discountedTotal = cartTotal * (1 - appliedDiscount/100);
+
+  const downloadCanvasImage = () => {
+    const canvas = document.querySelector('#three-canvas canvas');
+    if (!canvas) return;
+    canvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `crochetcraft-${Date.now()}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  };
+
+  useEffect(() => {
+    const manifest = {
+      name: "CrochetCraft 3D",
+      short_name: "CrochetCraft",
+      start_url: ".",
+      display: "standalone",
+      background_color: "#FDFBF7",
+      theme_color: "#E0B89C",
+      icons: [{ src: "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="#E0B89C"/><text x="50" y="55" text-anchor="middle" fill="white" font-size="18" font-family="serif">CC</text></svg>'), sizes: "192x192", type: "image/svg+xml" }]
+    };
+    const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+    const manifestURL = URL.createObjectURL(blob);
+    const link = document.createElement('link');
+    link.rel = 'manifest';
+    link.href = manifestURL;
+    document.head.appendChild(link);
+  }, []);
+
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      const swCode = `const CACHE_NAME = 'crochet-v1';self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.add('/'))); });self.addEventListener('fetch', e => { e.respondWith(caches.match(e.request).then(resp => resp || fetch(e.request))); });`;
+      const swBlob = new Blob([swCode], { type: 'application/javascript' });
+      const swURL = URL.createObjectURL(swBlob);
+      navigator.serviceWorker.register(swURL);
+    }
+  }, []);
+
+  if (loading) return <LoadingScreen onComplete={() => setLoading(false)} bgImage={settings.loaderBg} />;
+
+  return (
+    <div className="min-h-screen bg-base">
+      <a href="#main-content" className="skip-link">Skip to main content</a>
+      <div id="feedback-message" className="sr-only" aria-live="polite"></div>
+
+      <Navbar cartCount={cart.reduce((s,i)=>s+(i.quantity||1),0)} wishlistCount={wishlist.length} onCartClick={()=>setCartOpen(true)} onWishlistClick={()=>setWishOpen(true)} scrollY={scrollY} cartBounce={cartBounce}/>
+      
+      <main id="main-content">
+        <section className="relative pt-36 pb-10 text-center px-6 overflow-hidden">
+          <FloatingBackground />
+          <div className="relative z-10">
+            <div className={`transition-all duration-700 ${heroVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`} style={{ transitionDelay: '100ms' }}><h1 className="font-display text-5xl md:text-7xl font-bold">Bespoke <span className="italic text-rose">Crochet</span></h1></div>
+            <div className={`transition-all duration-700 ${heroVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`} style={{ transitionDelay: '300ms' }}><p className="mt-4 max-w-xl mx-auto text-muted">Design every stitch in 3D. Real‑time colors, patterns, sizes — your creation comes to life.</p></div>
+            <div className={`transition-all duration-700 ${heroVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`} style={{ transitionDelay: '500ms' }}><a href="#customize" className="inline-block mt-8 px-10 py-4 btn-primary rounded-full">Begin Designing</a></div>
+          </div>
+        </section>
+
+        <AsSeenIn />
+        <FadeInSection><MakerStory catImage={settings.catImage} /></FadeInSection>
+
+        <section id="customize" className="pt-10 pb-16 px-6 max-w-7xl mx-auto">
+          <div className="grid lg:grid-cols-5 gap-8">
+            <div className="lg:col-span-3">
+              <div ref={canvasRef} id="three-canvas" className="w-full h-[460px] rounded-[2rem] shadow-2xl" />
+              <div className="flex gap-2 mt-4 justify-center">
+                <button onClick={downloadCanvasImage} className="px-4 py-2 bg-base border border-gold/30 rounded-xl text-sm flex items-center gap-2" aria-label="Save design as image">📸 Save Image</button>
+                <a id="ar-link" rel="ar" href="/models/bunny.usdz" style={{display:'none'}}><img src="" alt="AR view" /></a>
+                <button onClick={() => document.getElementById('ar-link').click()} className="px-4 py-2 bg-base border border-gold/30 rounded-xl text-sm flex items-center gap-2">✨ View in Your Room</button>
+              </div>
+              <p className="text-xs text-center text-muted mt-2">👁️ {visitorCount} people are customising now</p>
+            </div>
+            <div className="lg:col-span-2 space-y-5">
+              <div className="glass-card p-5"><h3 className="font-display text-xl font-bold mb-3">Color</h3><div className="flex flex-wrap gap-3">{selected.colors.map(c=><button key={c} className={`color-swatch w-10 h-10 ${color===c?'selected':''}`} style={{backgroundColor:c}} onClick={()=>setColor(c)} title={`Color ${c}`} aria-label={`Select color ${c}`} />)}</div></div>
+              <div className="glass-card p-5"><h3 className="font-display text-xl font-bold mb-3">Pattern</h3><div className="flex flex-wrap gap-3">{selected.patterns.map(p=><button key={p} className={`pattern-option px-4 py-2 flex items-center gap-2 ${pattern===p?'selected':''}`} onClick={()=>setPattern(p)}><PatternPreview pattern={p} color={color}/><span className="capitalize">{p}</span></button>)}</div></div>
+              <div className="glass-card p-5"><h3 className="font-display text-xl font-bold mb-3">Size</h3><div className="flex flex-wrap gap-3">{selected.sizes.map(s=><button key={s.name} className={`size-btn px-4 py-2 ${size.name===s.name?'selected':''}`} onClick={()=>setSize(s)}>{s.name}<span className="block text-xs">₹{Math.round(selected.basePrice*s.multiplier)}</span></button>)}</div></div>
+              <div className="glass-card p-4 text-sm space-y-1"><p><span className="font-medium">Material:</span> {selected.material}</p><p><span className="font-medium">Care:</span> {selected.care}</p><p><span className="font-medium">Weight:</span> {selected.weight}</p><p><span className="font-medium">Brand:</span> {selected.yarnBrand}</p><p><span className="font-medium">Hook:</span> {selected.recommendedHookSize}</p></div>
+              <div className="flex gap-3">
+                <button onClick={addToCart} disabled={!selected.inStock} className={`flex-1 py-4 btn-primary rounded-2xl transition-colors duration-300 ${addFeedback ? 'bg-sage scale-105' : ''} ${!selected.inStock&&'opacity-50'}`} aria-label={addFeedback ? 'Added to cart' : 'Add to cart'}>{addFeedback ? 'Added ✓' : 'Add to Cart'}</button>
+                <button onClick={addToWishlist} className="p-4 rounded-2xl border border-gold/40 text-gold" aria-label="Add to wishlist"><HeartIcon/></button>
+              </div>
+              <div className="flex items-center gap-2 mt-3">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1A3322" strokeWidth="2"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+                <span className="text-xs text-sage">Ethically Handcrafted</span>
+              </div>
+              <p className="text-xs text-center text-muted">Made to order · Est. delivery <EstimatedDelivery/></p>
+            </div>
+          </div>
+          <FadeInSection><ProductSlider products={products} onSelect={selectProduct} /></FadeInSection>
+        </section>
+
+        <FadeInSection>
+          <section className="py-20 px-6 bg-base-dark/30">
+            <div className="max-w-7xl mx-auto">
+              <h2 className="font-display text-4xl font-bold text-center mb-10 text-ink">Our Collection</h2>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                {products.map((p,idx)=>(<FadeInSection key={p.id} delay={idx*100}><div className="glass-card overflow-hidden cursor-pointer" onClick={()=>setDetailProduct(p)}><div className="h-48 overflow-hidden"><img src={p.image} alt={p.name} className="w-full h-full object-cover transition duration-700 group-hover:scale-105" loading="lazy" decoding="async"/></div><div className="p-5"><p className="text-xs text-gold uppercase">{p.category}</p><h3 className="font-display text-lg font-bold text-ink">{p.name}</h3><p className="text-sm text-muted line-clamp-2">{p.description}</p><p className="font-semibold mt-2 text-ink">From ₹{p.basePrice.toLocaleString('en-IN')}</p>{!p.inStock&&<span className="text-xs text-rose">Sold Out</span>}</div></div></FadeInSection>))}
+              </div>
+            </div>
+          </section>
+        </FadeInSection>
+
+        <FadeInSection><CustomerGallery /></FadeInSection>
+      </main>
+
+      <footer className="py-10 border-t border-gold/10 flex flex-col md:flex-row items-center justify-between px-6 max-w-7xl mx-auto text-sm text-muted">
+        <div className="flex gap-6"><button onClick={()=>setTrackOpen(true)} className="hover:text-gold">Track Order</button><a href="#" className="hover:text-gold">Returns</a><a href="#" className="hover:text-gold">Privacy</a></div>
+        <div className="flex items-center gap-3"><span>© 2026 CrochetCraft3D</span><AdminPanel products={products} setProducts={setProducts} orders={orders} setOrders={setOrders} notifications={notifications} setNotifications={setNotifications} settings={settings} setSettings={setSettings} discountCodes={discountCodes} setDiscountCodes={setDiscountCodes}/></div>
+      </footer>
+
+      {emailPopupVisible && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 backdrop-blur-sm" onClick={() => setEmailPopupVisible(false)}>
+          <div className="bg-base rounded-3xl p-8 max-w-sm mx-4 animate-scale-in" onClick={e => e.stopPropagation()}>
+            {emailSubmitted ? (
+              <div className="text-center">
+                <p className="text-2xl">🎁</p>
+                <h3 className="font-display text-2xl font-bold mt-2">Thank You!</h3>
+                <p className="mt-2 text-muted">Use code <strong className="text-gold">WELCOME10</strong> for 10% off.</p>
+                <button onClick={() => setEmailPopupVisible(false)} className="mt-4 text-sm text-muted">Close</button>
+              </div>
+            ) : (
+              <form onSubmit={handleEmailSubmit}>
+                <h3 className="font-display text-2xl font-bold">Get 10% Off</h3>
+                <p className="text-sm text-muted mt-2">Join our newsletter for exclusive crochet inspiration and your discount.</p>
+                <input type="email" required placeholder="Your email" className="w-full mt-4 p-3 border border-gold/20 rounded-xl bg-base" />
+                <button type="submit" className="w-full mt-4 py-3 btn-primary rounded-xl">Claim Discount</button>
+                <button type="button" onClick={() => setEmailPopupVisible(false)} className="w-full text-xs text-muted mt-2">No thanks</button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {cartOpen && <div className="fixed inset-0 z-50 flex"><div className="fixed inset-0 bg-ink/30 backdrop-blur-sm" onClick={()=>setCartOpen(false)}></div><div className="fixed top-0 right-0 h-full w-full max-w-md bg-base shadow-2xl flex flex-col animate-slide-up"><div className="p-6 border-b border-gold/10 flex justify-between"><h2 className="font-display text-2xl font-bold">Cart</h2><button onClick={()=>setCartOpen(false)} aria-label="Close cart"><svg width="20" height="20" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><div className="flex-1 overflow-y-auto p-6 space-y-4">{cart.map((item,i)=><div key={i} className="glass-card p-4 flex gap-4"><img src={products.find(p=>p.id===item.productId)?.image} className="w-16 h-16 object-cover rounded-xl" loading="lazy" decoding="async"/><div className="flex-1"><h4 className="font-semibold text-sm">{item.productName}</h4><p className="text-xs text-muted">{item.sizeName} · {item.pattern}</p><div className="flex items-center gap-2 mt-2"><button onClick={()=>setCart(cart.map((it,idx)=>idx===i?{...it,quantity:Math.max(1,it.quantity-1)}:it))} className="w-6 h-6 rounded-full bg-base-dark" aria-label="Decrease quantity">−</button><span>{item.quantity}</span><button onClick={()=>setCart(cart.map((it,idx)=>idx===i?{...it,quantity:it.quantity+1}:it))} className="w-6 h-6 rounded-full bg-base-dark" aria-label="Increase quantity">+</button></div></div><div className="text-right"><p className="font-semibold">₹{(item.price*item.quantity).toLocaleString('en-IN')}</p><button onClick={()=>setCart(cart.filter((_,idx)=>idx!==i))} className="text-xs text-rose mt-2">Remove</button></div></div>)}</div><div className="p-6 border-t border-gold/10"><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={gift} onChange={e=>setGift(e.target.checked)}/> Gift</label>{gift&&<textarea placeholder="Gift message" value={giftNote} onChange={e=>setGiftNote(e.target.value)} className="w-full p-2 border border-gold/20 rounded-xl mt-2 text-sm"/>}<div className="mt-4 flex gap-2"><input placeholder="Discount code" value={discountCode} onChange={e=>setDiscountCode(e.target.value)} className="flex-1 p-2 border border-gold/20 rounded-xl text-sm"/><button onClick={applyDiscount} className="px-4 py-2 bg-gold text-base rounded-xl text-sm">Apply</button></div>{discountError&&<p className="text-rose text-xs mt-1">{discountError}</p>}{appliedDiscount>0&&<p className="text-sage text-xs mt-1">Discount {appliedDiscount}% applied!</p>}<div className="flex justify-between mt-4"><span>Subtotal</span><span className="font-bold">₹{cartTotal.toLocaleString('en-IN')}</span></div>{appliedDiscount>0&&<div className="flex justify-between"><span>Discount ({appliedDiscount}%)</span><span className="text-sage">-₹{((cartTotal*appliedDiscount)/100).toLocaleString('en-IN')}</span></div>}<div className="flex justify-between mt-2"><span>Total</span><span className="font-bold">₹{discountedTotal.toLocaleString('en-IN')}</span></div><button onClick={()=>{setCartOpen(false);setCheckoutStep('review');}} className="w-full py-4 btn-primary rounded-2xl mt-4">Checkout</button></div></div></div>}
+      {checkoutStep==='review'&&<div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/30 backdrop-blur-sm"><div className="bg-base rounded-3xl max-w-lg w-full shadow-2xl animate-scale-in p-8"><h2 className="font-display text-2xl font-bold mb-4">Review</h2>{cart.map((i,idx)=><div key={idx} className="flex justify-between py-2"><span>{i.productName} x{i.quantity}</span><span>₹{(i.price*i.quantity).toLocaleString('en-IN')}</span></div>)}<div className="flex justify-between mt-4 font-bold"><span>Total</span><span>₹{discountedTotal.toLocaleString('en-IN')}</span></div><div className="flex gap-3 mt-6"><button onClick={()=>setCheckoutStep(null)} className="flex-1 py-3 border border-gold/30 rounded-xl">Cancel</button><button onClick={()=>setCheckoutStep('form')} className="flex-1 py-3 bg-rose text-base rounded-xl">Continue</button></div></div></div>}
+      {checkoutStep==='form'&&<CheckoutForm cart={cart} onPlaceOrder={(customer)=>{ setCustomerForm(customer); placeOrder(customer); }} onBack={()=>setCheckoutStep('review')}/>}
+      {wishOpen&&<div className="fixed inset-0 z-50 flex"><div className="fixed inset-0 bg-ink/30 backdrop-blur-sm" onClick={()=>setWishOpen(false)}></div><div className="fixed top-0 right-0 h-full w-full max-w-sm bg-base shadow-2xl flex flex-col"><div className="p-6 border-b border-gold/10 flex justify-between"><h2 className="font-display text-xl font-bold">Wishlist</h2><button onClick={()=>setWishOpen(false)} aria-label="Close wishlist"><svg width="20" height="20" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><div className="flex-1 overflow-y-auto p-6 space-y-4">{wishlist.map((item,i)=><div key={i} className="glass-card p-4"><p className="font-semibold">{item.productName}</p><p className="text-xs text-muted">{item.color} · {item.pattern} · {item.sizeName}</p><div className="flex gap-2 mt-2"><button onClick={()=>moveWishToCart(i)} className="text-xs bg-gold/20 text-gold px-3 py-1 rounded-full">Move to Cart</button><button onClick={()=>setWishlist(wishlist.filter((_,idx)=>idx!==i))} className="text-xs text-rose">Remove</button></div></div>)}</div></div></div>}
+      <ProductDetailModal product={detailProduct} onClose={()=>setDetailProduct(null)} onCustomize={(p)=>{selectProduct(p);setDetailProduct(null);}} onNotify={handleNotify} />
+      <OrderTrackingModal isOpen={trackOpen} onClose={()=>setTrackOpen(false)} orders={orders} />
+      {receiptOrder && <ReceiptModal order={receiptOrder} onClose={()=>setReceiptOrder(null)}/>}
+      <a href="https://wa.me/919876543210?text=Hello%20CrochetCraft3D%2C%20I%20have%20a%20question" target="_blank" className="whatsapp-btn" title="Chat on WhatsApp" aria-label="Chat on WhatsApp"><svg width="24" height="24" viewBox="0 0 24 24" fill="white" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg></a>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
