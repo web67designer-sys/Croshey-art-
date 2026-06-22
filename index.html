@@ -34,8 +34,7 @@
       { "@type": "Offer", "itemOffered": { "@type": "Product", "name": "Amigurumi Bunny", "category": "Toys" }, "price": "800", "priceCurrency": "INR" },
       { "@type": "Offer", "itemOffered": { "@type": "Product", "name": "Crochet Beanie", "category": "Accessories" }, "price": "600", "priceCurrency": "INR" },
       { "@type": "Offer", "itemOffered": { "@type": "Product", "name": "Boho Tote Bag", "category": "Bags" }, "price": "1200", "priceCurrency": "INR" }
-    ],
-    "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.9", "reviewCount": "1800" }
+    ]
   }
   </script>
   <meta name="theme-color" content="#B5552F">
@@ -208,7 +207,8 @@
     .buybar.show { transform: translateY(0); }
 
     /* WhatsApp */
-    .wa { position:fixed; bottom:1.25rem; right:1.25rem; z-index:40; width:3.4rem; height:3.4rem; background:#25D366; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 8px 24px rgba(0,0,0,0.25); transition: transform 0.3s; }
+    .wa { position:fixed; bottom:1.25rem; right:1.25rem; z-index:40; width:3.4rem; height:3.4rem; background:radial-gradient(circle at 30% 110%, #FED576 0%, #F47133 25%, #BC3081 50%, #4C63D2 90%); border-radius:1rem; display:flex; align-items:center; justify-content:center; box-shadow:0 8px 24px rgba(0,0,0,0.25); transition: transform 0.3s; }
+    .wa:hover { transform: scale(1.1) rotate(-4deg); }
     .wa:hover { transform: scale(1.12); }
     @media (max-width:768px){ .wa { bottom: 5.5rem; } }
 
@@ -243,8 +243,8 @@ const { useState, useEffect, useRef, useMemo, memo, useCallback } = React;
 // Leave blank to run in local demo mode (saves to this browser only).
 // ══════════════════════════════════════════════════════════════
 const CONFIG = {
-  SUPABASE_URL: '',          // e.g. https://abcd1234.supabase.co
-  SUPABASE_ANON_KEY: '',     // your project's anon/public key
+  SUPABASE_URL: 'https://xkudvvaejofrsgnlflyl.supabase.co',
+  SUPABASE_ANON_KEY: 'sb_publishable_sMQIbXkbnH9TbANwVn45Hg_vVU5Q4Wp',
   RAZORPAY_KEY_ID: '',       // e.g. rzp_test_xxxxxxxx  (Razorpay Key ID)
   RAZORPAY_ENABLED: false,   // set true once RAZORPAY_KEY_ID is filled
   BUSINESS_NAME: 'Looped & Lovely',
@@ -272,7 +272,7 @@ const db = {
     if(!supa) return lsGet('ll_orders',[]);
     const { data, error } = await supa.from('orders').select('*').order('created_at',{ascending:true});
     if(error){ console.warn('Supabase getOrders',error.message); return []; }
-    return (data||[]).map(r=>({ id:r.order_id, date:r.date, customer:r.customer, items:r.items, gift:r.gift, giftNote:r.gift_note, discount:r.discount, total:r.total, status:r.status, payment:r.payment }));
+    return (data||[]).map(r=>({ id:r.order_id, date:r.date, customer:r.customer, items:r.items, gift:r.gift, giftNote:r.gift_note, discount:r.discount, total:r.total, status:r.status, payment:r.payment, reviewed:r.reviewed }));
   },
   async addOrder(o){
     if(!supa){ const all=lsGet('ll_orders',[]); all.push(o); lsSet('ll_orders',all); return o; }
@@ -307,6 +307,42 @@ const db = {
   async addNotif(n){
     if(!supa){ const all=lsGet('ll_notifs',[]); all.unshift(n); lsSet('ll_notifs',all); return; }
     await supa.from('notifications').insert({ email:n.email, product_name:n.productName, date:n.date });
+  },
+  // REVIEWS (customer-submitted, admin-moderated)
+  async getReviews(){
+    if(!supa) return lsGet('ll_reviews',[]);
+    const { data } = await supa.from('reviews').select('*').order('created_at',{ascending:false});
+    return (data||[]).map(r=>({ id:r.id, orderId:r.order_id, productId:r.product_id, productName:r.product_name, author:r.author, rating:r.rating, text:r.text, date:r.date, status:r.status }));
+  },
+  async addReview(rv){
+    if(!supa){ const all=lsGet('ll_reviews',[]); all.unshift(rv); lsSet('ll_reviews',all); return rv; }
+    const row={ order_id:rv.orderId, product_id:rv.productId, product_name:rv.productName, author:rv.author, rating:rv.rating, text:rv.text, date:rv.date, status:rv.status };
+    const { data } = await supa.from('reviews').insert(row).select().single();
+    return data?{...rv,id:data.id}:rv;
+  },
+  async updateReviewStatus(id,status){
+    if(!supa){ const all=lsGet('ll_reviews',[]).map(r=>r.id===id?{...r,status}:r); lsSet('ll_reviews',all); return; }
+    await supa.from('reviews').update({status}).eq('id',id);
+  },
+  // mark an order as reviewed (so the popup doesn't reappear)
+  async markOrderReviewed(orderId){
+    if(!supa){ const all=lsGet('ll_orders',[]).map(o=>o.id===orderId?{...o,reviewed:true}:o); lsSet('ll_orders',all); return; }
+    await supa.from('orders').update({reviewed:true}).eq('order_id',orderId);
+  },
+  // ANNOUNCEMENTS (admin -> customer notification bell)
+  async getAnnouncements(){
+    if(!supa) return lsGet('ll_announcements',[]);
+    const { data } = await supa.from('announcements').select('*').order('created_at',{ascending:false});
+    return (data||[]).map(a=>({ id:a.id, text:a.text, date:a.date }));
+  },
+  async addAnnouncement(a){
+    if(!supa){ const all=lsGet('ll_announcements',[]); all.unshift(a); lsSet('ll_announcements',all); return a; }
+    const { data } = await supa.from('announcements').insert({ text:a.text, date:a.date }).select().single();
+    return data?{...a,id:data.id}:a;
+  },
+  async deleteAnnouncement(id){
+    if(!supa){ lsSet('ll_announcements', lsGet('ll_announcements',[]).filter(a=>a.id!==id)); return; }
+    await supa.from('announcements').delete().eq('id',id);
   },
 };
 
@@ -738,6 +774,7 @@ const Ic = {
   link:()=> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>,
   spark:()=> <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.6 6.4L20 10l-6.4 1.6L12 18l-1.6-6.4L4 10l6.4-1.6z"/></svg>,
   diamond:()=> <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" className="inline-block align-middle"><path d="M12 2l4 10-4 10-4-10z" opacity="0.55"/><path d="M2 12l10-4 10 4-10 4z"/></svg>,
+  bell:()=> <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
 };
 const Stars = ({n=5})=> <span className="inline-flex gap-0.5">{Array.from({length:5}).map((_,i)=><Ic.star key={i} f={i<n} />)}</span>;
 const Eyebrow = ({children})=> <p className="inline-flex items-center gap-2 text-honey-2 uppercase tracking-[0.28em] text-[11px] font-semibold"><span className="w-6 h-px bg-honey-2/50"/>{children}<span className="w-6 h-px bg-honey-2/50"/></p>;
@@ -750,9 +787,29 @@ const Reveal = memo(({children, delay=0, className=''})=>{
 });
 
 function useCountUp(end, dur=1400){ const [n,setN]=useState(0); useEffect(()=>{ if(end<=0){setN(0);return;} let s=null,id; const step=t=>{ if(!s)s=t; const p=Math.min((t-s)/dur,1); setN(Math.floor(p*end)); if(p<1)id=requestAnimationFrame(step); }; id=requestAnimationFrame(step); return ()=>cancelAnimationFrame(id); },[end,dur]); return n; }
-// Close an open modal/drawer with the Escape key (accessibility).
+// Accessibility: Escape to close + focus trap + restore focus + body scroll lock.
 function useEscClose(isOpen, onClose){
-  useEffect(()=>{ if(!isOpen) return; const h=(e)=>{ if(e.key==='Escape') onClose&&onClose(); }; window.addEventListener('keydown',h); return ()=>window.removeEventListener('keydown',h); },[isOpen,onClose]);
+  useEffect(()=>{
+    if(!isOpen) return;
+    const prevFocus = document.activeElement;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden'; // lock background scroll
+    const onKey=(e)=>{
+      if(e.key==='Escape'){ onClose&&onClose(); return; }
+      if(e.key==='Tab'){
+        // trap focus inside the top-most modal
+        const modals=[...document.querySelectorAll('[role="dialog"]')];
+        const root=modals[modals.length-1]||document.body;
+        const f=root.querySelectorAll('a[href],button:not([disabled]),input,select,textarea,[tabindex]:not([tabindex="-1"])');
+        if(!f.length) return;
+        const first=f[0], last=f[f.length-1];
+        if(e.shiftKey && document.activeElement===first){ e.preventDefault(); last.focus(); }
+        else if(!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
+      }
+    };
+    window.addEventListener('keydown',onKey);
+    return ()=>{ window.removeEventListener('keydown',onKey); document.body.style.overflow=prevOverflow; if(prevFocus&&prevFocus.focus) try{prevFocus.focus();}catch(e){} };
+  },[isOpen,onClose]);
 }
 
 /* CONTINUES IN PART 2 */
@@ -804,8 +861,14 @@ const FloatBG = memo(()=>{
 });
 
 // ── NAVBAR ───────────────────────────────────────────────────
-function Navbar({cartCount,wishCount,onCart,onWish,scrolled,bounce}){
+function Navbar({cartCount,wishCount,onCart,onWish,scrolled,bounce,announcements=[]}){
   const [open,setOpen]=useState(false);
+  const [bellOpen,setBellOpen]=useState(false);
+  // "unread" = announcements newer than the last time this user opened the bell
+  const lastSeen=()=>{ try{return parseInt(localStorage.getItem('ll_ann_seen')||'0');}catch(e){return 0;} };
+  const newestId=announcements[0]?.id||0;
+  const unread=announcements.length>0 && newestId>lastSeen();
+  const openBell=()=>{ setBellOpen(o=>{ const n=!o; if(n){ try{localStorage.setItem('ll_ann_seen',String(newestId));}catch(e){} } return n; }); };
   const links=[['#collection','Shop'],['#studio','Design in 3D'],['#gallery','Gallery'],['#story','Our Story']];
   return (
     <nav className={`fixed top-0 inset-x-0 z-50 transition-all duration-500 ${scrolled?'glass shadow-sm py-3':'bg-transparent py-5'}`}>
@@ -815,6 +878,20 @@ function Navbar({cartCount,wishCount,onCart,onWish,scrolled,bounce}){
           {links.map(l=><a key={l[0]} href={l[0]} className="hover:text-clay transition-colors relative group">{l[1]}<span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-clay transition-all group-hover:w-full"/></a>)}
         </div>
         <div className="flex items-center gap-2">
+          <div className="relative">
+            <button onClick={openBell} className="relative p-2 rounded-full hover:bg-base-2 transition-colors" aria-label="Notifications">{Ic.bell()}{unread&&<span className="absolute top-1 right-1.5 w-2 h-2 rounded-full bg-clay ring-2 ring-base animate-pulse"/>}</button>
+            {bellOpen&&<>
+              <div className="fixed inset-0 z-40" onClick={()=>setBellOpen(false)}/>
+              <div className="absolute right-0 mt-2 w-72 max-w-[85vw] bg-cream rounded-2xl shadow-2xl border border-muted/15 z-50 overflow-hidden">
+                <div className="px-4 py-3 border-b border-muted/10 font-semibold text-sm">Notifications</div>
+                <div className="max-h-72 overflow-y-auto">
+                  {announcements.length===0
+                    ? <p className="px-4 py-6 text-center text-sm text-muted">No notifications yet.</p>
+                    : announcements.map((a,i)=><div key={a.id||i} className="px-4 py-3 border-b border-muted/5 last:border-0"><p className="text-sm text-ink">{a.text}</p><p className="text-[11px] text-muted mt-1">{a.date}</p></div>)}
+                </div>
+              </div>
+            </>}
+          </div>
           <button onClick={onWish} className="relative p-2 rounded-full hover:bg-base-2 transition-colors" aria-label="Wishlist">{Ic.heart()}{wishCount>0&&<span className="absolute -top-0.5 -right-0.5 bg-clay text-cream text-[10px] w-4 h-4 rounded-full flex items-center justify-center">{wishCount}</span>}</button>
           <button onClick={onCart} className="relative p-2 rounded-full hover:bg-base-2 transition-colors" aria-label="Cart">{Ic.cart()}{cartCount>0&&<span className={`absolute -top-0.5 -right-0.5 bg-honey text-ink text-[10px] w-4 h-4 rounded-full flex items-center justify-center ${bounce?'animate-cart-bounce':''}`}>{cartCount}</span>}</button>
           <button onClick={()=>setOpen(o=>!o)} className="md:hidden p-2 rounded-full hover:bg-base-2" aria-label="Menu"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
@@ -855,13 +932,13 @@ function Hero({vis}){
   );
 }
 
-// ── PRESS MARQUEE ────────────────────────────────────────────
+// ── PROMISE MARQUEE (honest brand values, not fake press) ────
 function Press(){
-  const names=['VOGUE','ELLE','HOMES & GARDENS','MARIE CLAIRE','DESIGN MILK','KINFOLK'];
+  const promises=['100% Handmade','Made to Order','Ethical Yarn','Free Design Tweaks','Worldwide Shipping','Loved & Lovely'];
   return (
-    <section className="py-9 bg-base-2/60 border-y border-muted/10">
-      <p className="text-center text-[11px] tracking-[0.3em] text-muted mb-5 uppercase">As featured in</p>
-      <div className="marquee-wrap"><div className="marquee slow" style={{gap:'3.5rem'}}>{[0,1,2].map(d=><React.Fragment key={d}>{names.map(n=><span key={n+d} className="font-display text-xl md:text-2xl text-ink/35 whitespace-nowrap">{n}</span>)}</React.Fragment>)}</div></div>
+    <section className="py-9 bg-base-2/60 border-y border-muted/10" aria-label="Our promises">
+      <p className="text-center text-[11px] tracking-[0.3em] text-muted mb-5 uppercase">Crafted with care</p>
+      <div className="marquee-wrap"><div className="marquee slow" style={{gap:'3.5rem'}}>{[0,1,2].map(d=><React.Fragment key={d}>{promises.map(n=><span key={n+d} className="font-display text-xl md:text-2xl text-ink/35 whitespace-nowrap flex items-center gap-3">{Ic.diamond()}{n}</span>)}</React.Fragment>)}</div></div>
     </section>
   );
 }
@@ -870,12 +947,13 @@ function Press(){
 function Stats(){
   const ref=useRef(null); const [go,setGo]=useState(false);
   useEffect(()=>{const o=new IntersectionObserver(es=>es.forEach(e=>e.isIntersecting&&setGo(true)),{threshold:0.3});if(ref.current)o.observe(ref.current);return()=>o.disconnect();},[]);
-  const data=[['12,400','Pieces stitched'],['4.9','Avg. rating'],['38','Countries shipped'],['100%','Made to order']];
-  const A=({v})=>{const num=parseFloat(v.replace(/,/g,'')); const c=useCountUp(go?num:0, 1400); const isFloat=v.includes('.'); const disp=isFloat?(c/1).toFixed(0):c.toLocaleString('en-IN'); return <span>{go?(isFloat?v:disp+(v.includes('%')?'%':v.includes(',')||num>=1000?'+':'')):'0'}</span>;};
+  // Honest, defensible values — no invented stats. Edit these to your real numbers.
+  const data=[['100%','Handmade to order'],['7','Day turnaround','days'],['3','Ways to customise'],['0','Mass-produced']];
+  const A=({v,suffix})=>{const num=parseFloat(v.replace(/,/g,'')); const c=useCountUp(go?num:0, 1400); const isPct=v.includes('%'); return <span>{go?(isPct?v:c.toLocaleString('en-IN')+(suffix?' '+suffix:'')):'0'}</span>;};
   return (
-    <section ref={ref} className="py-12 px-5">
+    <section ref={ref} className="py-12 px-5" aria-label="Why shop with us">
       <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-        {data.map((d,i)=><Reveal key={i} delay={i*90}><div><p className="font-display text-4xl md:text-5xl font-semibold text-clay">{i===1?'4.9':<A v={d[0]}/>}</p><p className="text-sm text-muted mt-1">{d[1]}</p></div></Reveal>)}
+        {data.map((d,i)=><Reveal key={i} delay={i*90}><div><p className="font-display text-4xl md:text-5xl font-semibold text-clay"><A v={d[0]} suffix={d[2]}/></p><p className="text-sm text-muted mt-1">{d[1]}</p></div></Reveal>)}
       </div>
     </section>
   );
@@ -1001,7 +1079,7 @@ function Studio({products, selected, setSelected, color,setColor, pattern,setPat
             <div className="flex flex-wrap gap-3">{selected.sizes.map(s=><button key={s.name} className={`sizebtn px-4 py-2 text-sm ${size.name===s.name?'sel':''}`} onClick={()=>setSize(s)}>{s.name}<span className="block text-[11px] opacity-80">{s.dims} · ₹{Math.round(selected.basePrice*s.mult).toLocaleString('en-IN')}</span></button>)}</div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <button onClick={onAdd} disabled={!selected.inStock} className={`btn btn-primary py-4 ${addFx?'!bg-success':''} ${!selected.inStock?'opacity-50':''}`}>{addFx?'Added ✓':selected.inStock?`Add to cart · ₹${price.toLocaleString('en-IN')}`:'Sold out'}</button>
+            <button onClick={()=>{ let snap=''; try{ const cv=ref.current; if(cv&&cv.toDataURL) snap=cv.toDataURL('image/png'); }catch(e){} onAdd(snap); }} disabled={!selected.inStock} className={`btn btn-primary py-4 ${addFx?'!bg-success':''} ${!selected.inStock?'opacity-50':''}`}>{addFx?'Added ✓':selected.inStock?`Add to cart · ₹${price.toLocaleString('en-IN')}`:'Sold out'}</button>
             <button onClick={onWish} className="btn btn-ghost py-4 flex items-center justify-center gap-2">{Ic.heart()} Save</button>
           </div>
           <div className="glass-panel p-4 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
@@ -1052,7 +1130,7 @@ function Gallery(){
   return (
     <section id="gallery" className="py-20 px-5">
       <div className="max-w-7xl mx-auto">
-        <Reveal><div className="text-center mb-10"><Eyebrow>Real customers</Eyebrow><h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-semibold mt-3">Styled by <span className="italic text-clay">you</span></h2><p className="text-muted mt-3">Tag <b>#LoopedAndLovely</b> to be featured.</p></div></Reveal>
+        <Reveal><div className="text-center mb-10"><Eyebrow>Real customers</Eyebrow><h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-semibold mt-3">Styled by <span className="italic text-clay">you</span></h2><p className="text-muted mt-3">Tag <a href="https://www.instagram.com/looped.and.lovely_01" target="_blank" rel="noopener noreferrer" className="text-clay font-semibold hover:underline">@looped.and.lovely_01</a> to be featured.</p></div></Reveal>
         <Reveal><div className="masonry">{tiles.map((t,i)=><div key={i} className={`tile ${t.span==='v'?'v':t.span==='h'?'h':''}`} onClick={()=>setBig(t.src)}><img src={t.src} alt={`Crochet by ${t.h}`} loading="lazy" decoding="async"/><div className="veil"><span className="h">{t.h}</span><a href="#collection" onClick={e=>e.stopPropagation()}>Shop the look</a></div></div>)}</div></Reveal>
       </div>
       {big&&<div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/85 p-4" onClick={()=>setBig(null)}><img src={big} className="max-w-full max-h-[90vh] rounded-2xl" alt="Customer crochet"/></div>}
@@ -1061,12 +1139,17 @@ function Gallery(){
 }
 
 // ── TESTIMONIALS marquee ─────────────────────────────────────
-function Testimonials(){
-  const t=[['Meera S.','My amigurumi bunny is flawless — the 3D preview was exactly what arrived.'],['Priya M.','Designing my own beanie colour felt magical. Obsessed.'],['Sana R.','The quality is unreal for handmade. Five stars.'],['Diya N.','So many compliments on my earrings. Will reorder!'],['Vikram S.','Coziest blanket ever. The studio made it fun to buy.'],['Aria K.','Customer for life. The care that goes in shows.']];
+function Testimonials({reviews=[]}){
+  // Show admin-approved customer reviews; fall back to seed samples if none yet.
+  const approved=reviews.filter(r=>r.status==='approved'&&r.text);
+  const seed=[{author:'Meera S.',rating:5,text:'My amigurumi bunny is flawless — the 3D preview was exactly what arrived.'},{author:'Priya M.',rating:5,text:'Designing my own beanie colour felt magical. Obsessed.'},{author:'Sana R.',rating:5,text:'The quality is unreal for handmade. Five stars.'},{author:'Diya N.',rating:5,text:'So many compliments on my earrings. Will reorder!'},{author:'Vikram S.',rating:5,text:'Coziest blanket ever. The studio made it fun to buy.'},{author:'Aria K.',rating:5,text:'Customer for life. The care that goes in shows.'}];
+  const usingReal=approved.length>=3;
+  let t=usingReal?approved:seed;
+  if(t.length<3) t=[...t,...t,...t]; // ensure smooth marquee
   return (
     <section className="py-16 bg-base-2/50 border-y border-muted/10 overflow-hidden">
-      <Reveal><h2 className="font-display text-3xl md:text-4xl font-semibold text-center mb-10 px-5">Loved by thousands</h2></Reveal>
-      <div className="marquee-wrap"><div className="marquee" style={{gap:'1.25rem'}}>{[0,1].map(d=><React.Fragment key={d}>{t.map((x,i)=><div key={d+'-'+i} className="w-72 flex-shrink-0 card p-5"><Stars/><p className="text-sm mt-3 text-ink-2">"{x[1]}"</p><p className="text-xs text-muted mt-3 font-semibold">— {x[0]}</p></div>)}</React.Fragment>)}</div></div>
+      <Reveal><h2 className="font-display text-3xl md:text-4xl font-semibold text-center mb-2 px-5">Kind words from customers</h2>{!usingReal&&<p className="text-center text-xs text-muted mb-10">Sample reviews — real customer reviews appear here once approved.</p>}{usingReal&&<p className="mb-10"></p>}</Reveal>
+      <div className="marquee-wrap"><div className="marquee" style={{gap:'1.25rem'}}>{[0,1].map(d=><React.Fragment key={d}>{t.map((x,i)=><div key={d+'-'+i} className="w-72 flex-shrink-0 card p-5"><Stars n={x.rating||5}/><p className="text-sm mt-3 text-ink-2">"{x.text}"</p><p className="text-xs text-muted mt-3 font-semibold">— {x.author}</p></div>)}</React.Fragment>)}</div></div>
     </section>
   );
 }
@@ -1082,7 +1165,7 @@ function Story({catImage}){
           <h2 className="font-display text-4xl md:text-5xl font-semibold mt-2 leading-tight">Made by hand, <span className="italic text-clay">kept for life</span></h2>
           <p className="text-muted leading-relaxed mt-4">Looped &amp; Lovely began with a single ball of yarn and a belief that the things we live with should be made with intention. Every piece is crocheted by a real maker, using sustainable fibres and timeless designs meant to outlast trends.</p>
           <p className="text-muted leading-relaxed mt-3">The 3D studio lets you be part of that process — so what you receive is truly, only yours.</p>
-          <p className="mt-6 font-display italic text-ink">— Priya, Founder &amp; Master Crocheter</p>
+          <p className="mt-6 font-display italic text-ink">— Nayeem, Founder &amp; Master Crocheter</p>
         </div></Reveal>
       </div>
     </section>
@@ -1126,7 +1209,7 @@ function QuickView({product,onClose,onDesign,onNotify}){
   return (
     // Full-screen sheet on mobile, centered card on desktop. Internal scroll so nothing is cut off — no zoom needed.
     <div className="fixed inset-0 z-50 flex sm:items-center sm:justify-center bg-ink/50 backdrop-blur-sm sm:p-4" onClick={onClose}>
-      <div className="bg-cream w-full h-full sm:h-auto sm:rounded-3xl sm:max-w-4xl sm:max-h-[92vh] shadow-2xl animate-scale-in flex flex-col overflow-hidden" onClick={e=>e.stopPropagation()}>
+      <div role="dialog" aria-modal="true" aria-label="Product details" className="bg-cream w-full h-full sm:h-auto sm:rounded-3xl sm:max-w-4xl sm:max-h-[92vh] shadow-2xl animate-scale-in flex flex-col overflow-hidden" onClick={e=>e.stopPropagation()}>
         {/* sticky header with close */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-muted/15 flex-shrink-0">
           <p className="text-[11px] text-honey-2 uppercase tracking-[0.2em] font-medium">{product.category}</p>
@@ -1186,7 +1269,7 @@ function Cart({open,onClose,cart,setCart,products,discount,setDiscount,discCode,
   return (
     <div className="fixed inset-0 z-50 flex">
       <div className="fixed inset-0 bg-ink/35 backdrop-blur-sm" onClick={onClose}/>
-      <div className="fixed top-0 right-0 h-full w-full max-w-md bg-base shadow-2xl flex flex-col animate-slide-up">
+      <div role="dialog" aria-modal="true" aria-label="Shopping cart" className="fixed top-0 right-0 h-full w-full max-w-md bg-base shadow-2xl flex flex-col animate-slide-up">
         <div className="p-5 border-b border-muted/15 flex justify-between items-center"><h2 className="font-display text-2xl font-semibold">Your Cart</h2><button onClick={onClose}>{Ic.close()}</button></div>
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           {cart.length===0?<div className="text-center mt-16"><div className="mx-auto w-16 h-16 rounded-2xl bg-base-2 flex items-center justify-center text-muted">{Ic.cart()}</div><p className="text-muted mt-3">Your cart is empty.</p><button onClick={onClose} className="btn btn-ghost px-6 py-2 mt-4">Keep shopping</button></div>:
@@ -1222,7 +1305,7 @@ function Wishlist({open,onClose,wishlist,setWishlist,onMove}){
   return (
     <div className="fixed inset-0 z-50 flex">
       <div className="fixed inset-0 bg-ink/35 backdrop-blur-sm" onClick={onClose}/>
-      <div className="fixed top-0 right-0 h-full w-full max-w-sm bg-base shadow-2xl flex flex-col">
+      <div role="dialog" aria-modal="true" aria-label="Wishlist" className="fixed top-0 right-0 h-full w-full max-w-sm bg-base shadow-2xl flex flex-col">
         <div className="p-5 border-b border-muted/15 flex justify-between items-center"><h2 className="font-display text-xl font-semibold">Wishlist</h2><button onClick={onClose}>{Ic.close()}</button></div>
         <div className="flex-1 overflow-y-auto p-5 space-y-4">{wishlist.length===0?<p className="text-muted text-center mt-12">No saved designs yet.</p>:wishlist.map((it,i)=><div key={i} className="card p-4"><p className="font-semibold text-sm">{it.productName}</p><p className="text-xs text-muted flex items-center gap-1.5 mt-1"><span className="w-3 h-3 rounded-full inline-block" style={{background:it.color}}/> {it.pattern} · {it.sizeName}</p><div className="flex gap-2 mt-3"><button onClick={()=>onMove(i)} className="text-xs bg-honey/30 text-honey-2 px-3 py-1.5 rounded-full font-medium">Add to cart</button><button onClick={()=>setWishlist(wishlist.filter((_,j)=>j!==i))} className="text-xs text-danger">Remove</button></div></div>)}</div>
       </div>
@@ -1299,7 +1382,7 @@ function TrackModal({open,onClose,orders}){
   const search=()=>{const o=orders.find(o=>o.id===id.trim()&&o.customer.email.toLowerCase()===email.trim().toLowerCase());setFound(o||null);setSearched(true);};
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="bg-cream rounded-3xl max-w-lg w-full p-8 shadow-2xl animate-scale-in max-h-[90vh] overflow-y-auto" onClick={e=>e.stopPropagation()}>
+      <div role="dialog" aria-modal="true" aria-label="Track your order" className="bg-cream rounded-3xl max-w-lg w-full p-8 shadow-2xl animate-scale-in max-h-[90vh] overflow-y-auto" onClick={e=>e.stopPropagation()}>
         <h3 className="font-display text-2xl font-semibold mb-4">Track your order</h3>
         <div className="space-y-3"><input placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} className="w-full p-3 border border-muted/25 rounded-xl"/><input placeholder="Order ID (e.g. LL-XXXX)" value={id} onChange={e=>setId(e.target.value)} className="w-full p-3 border border-muted/25 rounded-xl"/><button onClick={search} className="btn btn-primary w-full py-3">Find order</button></div>
         {found&&<div className="mt-6 bg-base-2/60 p-5 rounded-2xl"><div className="flex justify-between items-start"><div><p className="font-semibold">#{found.id}</p><p className="text-xs text-muted">{found.date}</p></div><span className="px-3 py-1 rounded-full text-xs font-medium bg-sage/20 text-sage-2">{found.status}</span></div><OrderStepper status={found.status}/><div className="mt-4 pt-4 border-t border-muted/15 text-sm space-y-1">{found.items.map((i,x)=><div key={x} className="flex justify-between"><span>{i.productName} ×{i.qty}</span><span>₹{(i.price*i.qty).toLocaleString('en-IN')}</span></div>)}<p className="text-right font-semibold mt-2">Total ₹{Math.round(found.total).toLocaleString('en-IN')}</p></div><button onClick={()=>setRc(true)} className="btn btn-ghost w-full py-3 mt-4">View &amp; print receipt</button></div>}
@@ -1307,6 +1390,36 @@ function TrackModal({open,onClose,orders}){
         <button onClick={onClose} className="mt-4 w-full text-sm text-muted">Close</button>
       </div>
       {rc&&found&&<Receipt order={found} onClose={()=>setRc(false)}/>}
+    </div>
+  );
+}
+
+// ── RATING POPUP (shown to the buyer of a delivered order) ───
+function RatingPopup({ order, onClose, onSubmit }){
+  const [rating,setRating]=useState(0),[hover,setHover]=useState(0),[text,setText]=useState(''),[busy,setBusy]=useState(false);
+  useEscClose(!!order, onClose);
+  if(!order) return null;
+  const names=[...new Set(order.items.map(i=>i.productName))].join(', ');
+  return (
+    <div className="fixed inset-0 z-[65] flex items-center justify-center bg-ink/55 backdrop-blur-sm p-4" onClick={onClose}>
+      <div role="dialog" aria-modal="true" aria-label="Rate your order" className="bg-cream rounded-3xl max-w-md w-full p-8 shadow-2xl animate-scale-in text-center" onClick={e=>e.stopPropagation()}>
+        <div className="text-3xl">🧶</div>
+        <h3 className="font-display text-2xl font-semibold mt-2">How did we do?</h3>
+        <p className="text-sm text-muted mt-1">Your order <span className="font-medium text-ink">{order.id}</span> was delivered. Tell us about your <span className="text-clay">{names}</span>.</p>
+        <div className="flex justify-center gap-1.5 my-5" role="radiogroup" aria-label="Star rating">
+          {[1,2,3,4,5].map(n=>(
+            <button key={n} onMouseEnter={()=>setHover(n)} onMouseLeave={()=>setHover(0)} onClick={()=>setRating(n)} aria-label={`${n} star${n>1?'s':''}`} className="transition-transform hover:scale-125">
+              <svg width="34" height="34" viewBox="0 0 24 24" fill={(hover||rating)>=n?'#E8C170':'none'} stroke="#E8C170" strokeWidth="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg>
+            </button>
+          ))}
+        </div>
+        <textarea value={text} onChange={e=>setText(e.target.value)} placeholder="Share a few words (optional)…" rows="3" className="w-full p-3 border border-muted/25 rounded-xl text-sm"/>
+        <div className="flex gap-3 mt-4">
+          <button onClick={onClose} className="btn btn-ghost flex-1 py-3">Maybe later</button>
+          <button disabled={!rating||busy} onClick={async()=>{setBusy(true);await onSubmit(order,rating,text.trim());}} className={`btn btn-primary flex-1 py-3 ${!rating?'opacity-50':''}`}>{busy?'Sending…':'Submit review'}</button>
+        </div>
+        <p className="text-[11px] text-muted mt-3">Reviews are checked before appearing on the site.</p>
+      </div>
     </div>
   );
 }
@@ -1319,7 +1432,7 @@ function Footer({onTrack, adminProps}){
         <div><h3 className="font-display text-2xl font-semibold text-cream">Looped <span className="text-honey italic">&amp;</span> Lovely</h3><p className="text-sm mt-3 text-cream/60">Bespoke handmade crochet, designed by you in real-time 3D. Made with love, shipped worldwide.</p></div>
         <div><h4 className="font-semibold text-cream mb-3 text-sm uppercase tracking-wide">Shop</h4><ul className="space-y-2 text-sm"><li><a href="#collection" className="hover:text-honey">Collection</a></li><li><a href="#studio" className="hover:text-honey">3D Studio</a></li><li><a href="#gallery" className="hover:text-honey">Gallery</a></li></ul></div>
         <div><h4 className="font-semibold text-cream mb-3 text-sm uppercase tracking-wide">Help</h4><ul className="space-y-2 text-sm"><li><button onClick={onTrack} className="hover:text-honey">Track order</button></li><li><a href="#" className="hover:text-honey">Returns</a></li><li><a href="#story" className="hover:text-honey">Our story</a></li></ul></div>
-        <div><h4 className="font-semibold text-cream mb-3 text-sm uppercase tracking-wide">Follow</h4><div className="flex gap-3">{['Instagram','TikTok','Pinterest'].map(s=><a key={s} href="#" className="text-sm hover:text-honey">{s}</a>)}</div></div>
+        <div><h4 className="font-semibold text-cream mb-3 text-sm uppercase tracking-wide">Follow</h4><div className="flex gap-3">{[['Instagram','https://www.instagram.com/looped.and.lovely_01'],['TikTok','#'],['Pinterest','#']].map(([s,href])=><a key={s} href={href} target={href!=='#'?'_blank':undefined} rel={href!=='#'?'noopener noreferrer':undefined} className="text-sm hover:text-honey">{s}</a>)}</div></div>
       </div>
       <div className="max-w-7xl mx-auto mt-10 pt-6 border-t border-cream/10 flex flex-col md:flex-row justify-between items-center gap-3 text-xs text-cream/50">
         <span>© 2026 Looped &amp; Lovely · Handmade with care</span>
@@ -1432,16 +1545,23 @@ function ShapeBuilder({ value, onChange }){
 }
 
 function Admin(props){
-  const [open,setOpen]=useState(false),[auth,setAuth]=useState(false);
+  // Stay logged in for the browser session (#5): once authed, the gear opens the dashboard directly.
+  const [auth,setAuth]=useState(()=>sessionStorage.getItem('ll_admin_auth')==='1');
+  const [open,setOpen]=useState(false);
   const [email,setEmail]=useState(''),[pw,setPw]=useState(''),[busy,setBusy]=useState(false),[err,setErr]=useState('');
   // demo-mode (no Supabase) local password
   const [adminPass,setAdminPass]=useState(()=>localStorage.getItem('ll_pass')||'');
   const [setup,setSetup]=useState(!adminPass),[np,setNp]=useState('');
+  const grantAuth=()=>{ sessionStorage.setItem('ll_admin_auth','1'); setAuth(true); };
   // restore existing Supabase session
-  useEffect(()=>{ if(supa){ supa.auth.getSession().then(({data})=>{ if(data.session) setAuth(true); }); } },[]);
-  const supaLogin=async()=>{ setErr(''); setBusy(true); const { error }=await supa.auth.signInWithPassword({ email:email.trim(), password:pw }); setBusy(false); if(error) setErr(error.message); else setAuth(true); };
-  const supaLogout=async()=>{ if(supa) await supa.auth.signOut(); setAuth(false); setOpen(false); };
+  useEffect(()=>{ if(supa){ supa.auth.getSession().then(({data})=>{ if(data.session) grantAuth(); }); } },[]);
+  const supaLogin=async()=>{ setErr(''); setBusy(true); const { error }=await supa.auth.signInWithPassword({ email:email.trim(), password:pw }); setBusy(false); if(error) setErr(error.message); else grantAuth(); };
+  const supaLogout=async()=>{ if(supa) await supa.auth.signOut(); sessionStorage.removeItem('ll_admin_auth'); setAuth(false); setOpen(false); };
+  // Change the demo-mode admin password (#4)
+  const changePassword=(oldP,newP)=>{ if(oldP!==(localStorage.getItem('ll_pass')||'')){ alert('Current password is incorrect'); return false; } if(!newP||newP.length<4){ alert('New password must be at least 4 characters'); return false; } localStorage.setItem('ll_pass',newP); setAdminPass(newP); alert('Password updated.'); return true; };
 
+  // If already authed for this session, the gear opens the dashboard directly (#5).
+  if(!open && auth) return <button onClick={()=>setOpen(true)} className="admin-gear" aria-label="Admin dashboard" title="Admin (logged in)">{Ic.gear()}</button>;
   if(!open)return <button onClick={()=>setOpen(true)} className="admin-gear" aria-label="Admin">{Ic.gear()}</button>;
   if(!auth)return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-obsidian/85 backdrop-blur" onClick={()=>setOpen(false)}>
@@ -1456,18 +1576,21 @@ function Admin(props){
             <button disabled={busy} onClick={supaLogin} className="btn btn-primary w-full py-3">{busy?'Signing in…':'Login'}</button>
           </div>
         ) : (
-          setup?<div className="space-y-4"><h3 className="text-xl font-bold text-cream">Set admin password</h3><p className="text-xs text-cream/40">Demo mode — add Supabase keys for real accounts.</p><input type="password" value={np} onChange={e=>setNp(e.target.value)} className="w-full p-3 bg-charcoal border border-honey/30 rounded-xl text-cream" placeholder="New password (min 4)"/><button onClick={()=>{if(np.length>=4){localStorage.setItem('ll_pass',np);setAdminPass(np);setSetup(false);setAuth(true);}else{alert('Password must be at least 4 characters');}}} className="btn btn-primary w-full py-3">Set password</button></div>:
-          <div className="space-y-4"><h3 className="text-xl font-bold text-cream">Admin login</h3><input type="password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){if(pw===adminPass)setAuth(true);else alert('Wrong password');}}} className="w-full p-3 bg-charcoal border border-honey/30 rounded-xl text-cream" placeholder="Password"/><button onClick={()=>{if(pw===adminPass)setAuth(true);else alert('Wrong password');}} className="btn btn-primary w-full py-3">Login</button></div>
+          setup?<div className="space-y-4"><h3 className="text-xl font-bold text-cream">Set admin password</h3><p className="text-xs text-cream/40">Demo mode — add Supabase keys for real accounts.</p><input type="password" value={np} onChange={e=>setNp(e.target.value)} className="w-full p-3 bg-charcoal border border-honey/30 rounded-xl text-cream" placeholder="New password (min 4)"/><button onClick={()=>{if(np.length>=4){localStorage.setItem('ll_pass',np);setAdminPass(np);setSetup(false);grantAuth();}else{alert('Password must be at least 4 characters');}}} className="btn btn-primary w-full py-3">Set password</button></div>:
+          <div className="space-y-4"><h3 className="text-xl font-bold text-cream">Admin login</h3><input type="password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){if(pw===adminPass)grantAuth();else alert('Wrong password');}}} className="w-full p-3 bg-charcoal border border-honey/30 rounded-xl text-cream" placeholder="Password"/><button onClick={()=>{if(pw===adminPass)grantAuth();else alert('Wrong password');}} className="btn btn-primary w-full py-3">Login</button></div>
         )}
         <button onClick={()=>setOpen(false)} className="mt-4 w-full text-sm text-cream/50">Cancel</button>
       </div>
     </div>);
-  return <AdminDashboard {...props} onLogout={supaLogout}/>;
+  return <AdminDashboard {...props} onClose={()=>setOpen(false)} onLogout={supaLogout} onChangePassword={changePassword} isLive={LIVE}/>;
 }
 
 const Stat=({l,v,sub})=> <div className="bg-charcoal border border-honey/10 rounded-2xl p-5"><p className="text-[11px] text-cream/40 uppercase tracking-wide">{l}</p><p className="text-3xl font-bold mt-2 text-cream">{v}</p>{sub&&<p className="text-xs text-honey/70 mt-1">{sub}</p>}</div>;
 
-function AdminDashboard({products,setProducts,orders,setOrders,settings,setSettings,discounts,setDiscounts,notifications=[],setNotifications,onLogout}){
+function AdminDashboard({products,setProducts,orders,setOrders,settings,setSettings,discounts,setDiscounts,notifications=[],setNotifications,reviews=[],moderateReview,announcements=[],addAnnouncement,deleteAnnouncement,onClose,onLogout,onChangePassword,isLive}){
+  const [cpOld,setCpOld]=useState(''),[cpNew,setCpNew]=useState('');
+  const [annText,setAnnText]=useState('');
+  const [bigImg,setBigImg]=useState(null);
   const [tab,setTab]=useState('dash');
   const [menuOpen,setMenuOpen]=useState(false);
   const [orderSearch,setOrderSearch]=useState('');
@@ -1523,7 +1646,8 @@ function AdminDashboard({products,setProducts,orders,setOrders,settings,setSetti
 
   const fProducts=products.filter(p=>(pCat==='All'||p.category===pCat)&&p.name.toLowerCase().includes(pSearch.toLowerCase()));
   const fOrders=orders.filter(o=>!orderSearch||o.id.toLowerCase().includes(orderSearch.toLowerCase())||o.customer.name.toLowerCase().includes(orderSearch.toLowerCase()));
-  const navItems=[['dash','Dashboard'],['products','Products'],['orders','Orders'],['customers','Customers'],['notifications','Notify list'],['discounts','Discounts'],['settings','Settings']];
+  const pendingReviews=reviews.filter(r=>r.status==='pending').length;
+  const navItems=[['dash','Dashboard'],['products','Products'],['orders','Orders'],['reviews','Reviews'],['customers','Customers'],['notifications','Notify & Announce'],['discounts','Discounts'],['settings','Settings']];
   const inp="w-full p-2.5 bg-obsidian border border-honey/20 rounded-lg text-cream text-sm";
 
   return (
@@ -1536,7 +1660,7 @@ function AdminDashboard({products,setProducts,orders,setOrders,settings,setSetti
             <span className="font-display text-xl font-semibold text-honey">Looped <span className="text-cream/70">Admin</span></span>
             <button onClick={()=>setMenuOpen(false)} className="text-cream/60 hover:text-cream" aria-label="Close menu">{Ic.close()}</button>
           </div>
-          <nav className="flex-1 px-3 space-y-1 overflow-y-auto">{navItems.map(([k,l])=><button key={k} onClick={()=>{setTab(k);setMenuOpen(false);}} className={`w-full text-left px-4 py-3 rounded-xl text-sm flex items-center justify-between transition ${tab===k?'bg-honey/15 text-honey':'text-cream/70 hover:text-cream hover:bg-cream/5'}`}>{l}{k==='dash'&&processing>0&&<span className="w-2 h-2 rounded-full bg-clay"/>}{k==='notifications'&&notifications.length>0&&<span className="text-[10px] bg-clay/30 text-clay px-1.5 rounded-full">{notifications.length}</span>}</button>)}</nav>
+          <nav className="flex-1 px-3 space-y-1 overflow-y-auto">{navItems.map(([k,l])=><button key={k} onClick={()=>{setTab(k);setMenuOpen(false);}} className={`w-full text-left px-4 py-3 rounded-xl text-sm flex items-center justify-between transition ${tab===k?'bg-honey/15 text-honey':'text-cream/70 hover:text-cream hover:bg-cream/5'}`}>{l}{k==='dash'&&processing>0&&<span className="w-2 h-2 rounded-full bg-clay"/>}{k==='notifications'&&notifications.length>0&&<span className="text-[10px] bg-clay/30 text-clay px-1.5 rounded-full">{notifications.length}</span>}{k==='reviews'&&pendingReviews>0&&<span className="text-[10px] bg-clay/30 text-clay px-1.5 rounded-full">{pendingReviews}</span>}</button>)}</nav>
           <div className="p-4 border-t border-honey/10 space-y-2">
             <label className="w-full text-sm bg-honey/10 text-honey px-4 py-2.5 rounded-xl cursor-pointer hover:bg-honey/20 block text-center"><input type="file" accept=".json" onChange={importProducts} className="hidden"/>Import products</label>
             <button onClick={exportProducts} className="w-full text-sm bg-honey/10 text-honey px-4 py-2.5 rounded-xl hover:bg-honey/20">Export products</button>
@@ -1552,7 +1676,7 @@ function AdminDashboard({products,setProducts,orders,setOrders,settings,setSetti
           </div>
           <div className="flex gap-2 items-center">
             <span className="hidden sm:inline font-display text-honey font-semibold text-sm">Looped Admin</span>
-            <button onClick={onLogout} className="text-xs text-cream/50 px-2 hover:text-honey">Exit</button>
+            <button onClick={onClose} className="text-xs text-cream/50 px-2 hover:text-honey" aria-label="Close dashboard">Close</button>
           </div>
         </header>
         <div className="flex-1 overflow-y-auto p-5 md:p-8">
@@ -1594,7 +1718,30 @@ function AdminDashboard({products,setProducts,orders,setOrders,settings,setSetti
               <h2 className="font-display text-xl font-semibold">Orders ({fOrders.length})</h2>
               <div className="flex gap-2"><input placeholder="Search ID or name…" value={orderSearch} onChange={e=>setOrderSearch(e.target.value)} className="px-3 py-2 bg-charcoal border border-honey/20 rounded-lg text-sm text-cream w-48"/><button onClick={exportCSV} className="text-sm text-honey hover:underline">Export CSV</button></div>
             </div>
-            <div className="bg-charcoal border border-honey/10 rounded-xl overflow-x-auto"><table className="w-full text-sm min-w-[560px]"><thead className="text-cream/40 border-b border-honey/10"><tr><th className="text-left p-3">ID</th><th className="text-left p-3">Customer</th><th className="text-left p-3">Date</th><th className="text-right p-3">Total</th><th className="p-3">Status</th></tr></thead><tbody>{fOrders.slice().reverse().map((o,i)=><tr key={i} className="border-t border-honey/5 hover:bg-cream/5"><td className="p-3 font-mono text-honey">{o.id}</td><td className="p-3">{o.customer.name}<br/><span className="text-xs text-cream/40">{o.customer.email}</span></td><td className="p-3 text-cream/60">{o.date}</td><td className="p-3 text-right">₹{Math.round(o.total).toLocaleString('en-IN')}</td><td className="p-3"><select value={o.status} onChange={e=>updStatus(o.id,e.target.value)} className="bg-obsidian border border-honey/20 rounded px-2 py-1 text-xs"><option>Processing</option><option>Shipped</option><option>Delivered</option></select></td></tr>)}{fOrders.length===0&&<tr><td colSpan="5" className="p-6 text-center text-cream/40">No orders yet</td></tr>}</tbody></table></div>
+            <div className="bg-charcoal border border-honey/10 rounded-xl overflow-x-auto"><table className="w-full text-sm min-w-[680px]"><thead className="text-cream/40 border-b border-honey/10"><tr><th className="text-left p-3">ID</th><th className="text-left p-3">Customer</th><th className="text-left p-3">Date</th><th className="text-left p-3">Design</th><th className="text-right p-3">Total</th><th className="p-3">Status</th></tr></thead><tbody>{fOrders.slice().reverse().map((o,i)=><tr key={i} className="border-t border-honey/5 hover:bg-cream/5 align-top"><td className="p-3 font-mono text-honey">{o.id}</td><td className="p-3">{o.customer.name}<br/><span className="text-xs text-cream/40">{o.customer.email}</span></td><td className="p-3 text-cream/60 whitespace-nowrap">{o.date}</td><td className="p-3"><div className="flex gap-1.5">{o.items.map((it,j)=>it.snapshot?<img key={j} src={it.snapshot} alt={it.productName} title={`${it.productName} (${it.sizeName})`} onClick={()=>setBigImg(it.snapshot)} className="w-12 h-12 rounded-lg object-cover border border-honey/20 cursor-zoom-in bg-obsidian"/>:<div key={j} title={it.productName} className="w-12 h-12 rounded-lg border border-honey/10 flex items-center justify-center text-[9px] text-cream/30 text-center leading-tight p-1">{it.productName.split(' ')[0]}</div>)}</div></td><td className="p-3 text-right whitespace-nowrap">₹{Math.round(o.total).toLocaleString('en-IN')}</td><td className="p-3"><select value={o.status} onChange={e=>updStatus(o.id,e.target.value)} className="bg-obsidian border border-honey/20 rounded px-2 py-1 text-xs"><option>Processing</option><option>Shipped</option><option>Delivered</option></select></td></tr>)}{fOrders.length===0&&<tr><td colSpan="6" className="p-6 text-center text-cream/40">No orders yet</td></tr>}</tbody></table></div>
+          </div>}
+          {bigImg&&<div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 p-6" onClick={()=>setBigImg(null)}><img src={bigImg} alt="Customer design" className="max-w-full max-h-[90vh] rounded-xl"/></div>}
+
+          {tab==='reviews'&&<div>
+            <h2 className="font-display text-xl font-semibold mb-1">Reviews</h2>
+            <p className="text-sm text-cream/40 mb-5">Approve good reviews to publish them on the site, or reject them.</p>
+            <div className="space-y-3">
+              {reviews.length===0&&<p className="text-cream/40 text-sm bg-charcoal border border-honey/10 rounded-xl p-6 text-center">No reviews yet. They appear here after a customer rates a delivered order.</p>}
+              {reviews.map((r,i)=>(
+                <div key={r.id||i} className="bg-charcoal border border-honey/10 rounded-xl p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2"><span className="text-honey">{'★'.repeat(r.rating)}<span className="text-cream/20">{'★'.repeat(5-r.rating)}</span></span><span className="text-sm font-medium">{r.author}</span></div>
+                      <p className="text-xs text-cream/40 mt-0.5">{r.productName} · {r.date} · order {r.orderId}</p>
+                      {r.text&&<p className="text-sm text-cream/80 mt-2">"{r.text}"</p>}
+                    </div>
+                    <span className={`text-[10px] uppercase px-2 py-1 rounded-full flex-shrink-0 ${r.status==='approved'?'bg-success/20 text-success':r.status==='rejected'?'bg-danger/20 text-danger':'bg-honey/20 text-honey'}`}>{r.status}</span>
+                  </div>
+                  {r.status!=='approved'&&<div className="flex gap-3 mt-3"><button onClick={()=>moderateReview(r.id,'approved')} className="text-xs bg-success/15 text-success px-3 py-1.5 rounded-lg hover:bg-success/25">Approve &amp; publish</button>{r.status!=='rejected'&&<button onClick={()=>moderateReview(r.id,'rejected')} className="text-xs text-danger hover:underline">Reject</button>}</div>}
+                  {r.status==='approved'&&<button onClick={()=>moderateReview(r.id,'pending')} className="text-xs text-cream/40 hover:underline mt-2">Unpublish</button>}
+                </div>
+              ))}
+            </div>
           </div>}
 
           {tab==='customers'&&<div>
@@ -1602,9 +1749,25 @@ function AdminDashboard({products,setProducts,orders,setOrders,settings,setSetti
             <div className="bg-charcoal border border-honey/10 rounded-xl overflow-x-auto"><table className="w-full text-sm min-w-[480px]"><thead className="text-cream/40 border-b border-honey/10"><tr><th className="text-left p-3">Name</th><th className="text-left p-3">Email</th><th className="text-center p-3">Orders</th><th className="text-right p-3">Spent</th></tr></thead><tbody>{customers.map((c,i)=><tr key={i} className="border-t border-honey/5 hover:bg-cream/5"><td className="p-3">{c.name}</td><td className="p-3 text-cream/60">{c.email}</td><td className="p-3 text-center text-honey">{c.orders}</td><td className="p-3 text-right">₹{Math.round(c.spent).toLocaleString('en-IN')}</td></tr>)}{customers.length===0&&<tr><td colSpan="4" className="p-6 text-center text-cream/40">No customers yet</td></tr>}</tbody></table></div>
           </div>}
 
-          {tab==='notifications'&&<div>
-            <h2 className="font-display text-xl font-semibold mb-5">Back-in-stock requests ({notifications.length})</h2>
-            <div className="bg-charcoal border border-honey/10 rounded-xl overflow-x-auto"><table className="w-full text-sm min-w-[420px]"><thead className="text-cream/40 border-b border-honey/10"><tr><th className="text-left p-3">Email</th><th className="text-left p-3">Product</th><th className="text-left p-3">Date</th></tr></thead><tbody>{notifications.map((n,i)=><tr key={i} className="border-t border-honey/5"><td className="p-3">{n.email}</td><td className="p-3 text-cream/60">{n.productName}</td><td className="p-3 text-cream/40">{n.date}</td></tr>)}{notifications.length===0&&<tr><td colSpan="3" className="p-6 text-center text-cream/40">No requests yet</td></tr>}</tbody></table></div>
+          {tab==='notifications'&&<div className="space-y-7">
+            {/* Announcements — published to the customer notification bell */}
+            <div>
+              <h2 className="font-display text-xl font-semibold mb-1">Announcements</h2>
+              <p className="text-xs text-cream/40 mb-3">Published announcements appear in every customer's notification bell.</p>
+              <div className="flex gap-2 mb-3 max-w-2xl">
+                <input value={annText} onChange={e=>setAnnText(e.target.value)} className={inp} placeholder="e.g. New winter collection is live!"/>
+                <button onClick={()=>{ const t=annText.trim(); if(!t) return; addAnnouncement(t); setAnnText(''); }} className="btn btn-primary px-4 py-2 text-sm whitespace-nowrap">Publish</button>
+              </div>
+              <div className="space-y-2 max-w-2xl">
+                {announcements.length===0&&<p className="text-xs text-cream/40">No announcements yet.</p>}
+                {announcements.map((a,i)=><div key={a.id||i} className="flex items-start justify-between gap-3 bg-charcoal border border-honey/10 rounded-lg p-3"><div><p className="text-sm text-cream">{a.text}</p><p className="text-[11px] text-cream/40 mt-0.5">{a.date}</p></div><button onClick={()=>deleteAnnouncement(a.id)} className="text-danger text-xs hover:underline flex-shrink-0">Delete</button></div>)}
+              </div>
+            </div>
+            {/* Back-in-stock requests */}
+            <div>
+              <h2 className="font-display text-xl font-semibold mb-5">Back-in-stock requests ({notifications.length})</h2>
+              <div className="bg-charcoal border border-honey/10 rounded-xl overflow-x-auto"><table className="w-full text-sm min-w-[420px]"><thead className="text-cream/40 border-b border-honey/10"><tr><th className="text-left p-3">Email</th><th className="text-left p-3">Product</th><th className="text-left p-3">Date</th></tr></thead><tbody>{notifications.map((n,i)=><tr key={i} className="border-t border-honey/5"><td className="p-3">{n.email}</td><td className="p-3 text-cream/60">{n.productName}</td><td className="p-3 text-cream/40">{n.date}</td></tr>)}{notifications.length===0&&<tr><td colSpan="3" className="p-6 text-center text-cream/40">No requests yet</td></tr>}</tbody></table></div>
+            </div>
           </div>}
 
           {tab==='discounts'&&<div>
@@ -1623,6 +1786,15 @@ function AdminDashboard({products,setProducts,orders,setOrders,settings,setSetti
               </div>
               <button onClick={()=>{setSettings({...settings,catImage:setImg});alert('Saved — refresh to see it on the site.');}} className="btn btn-primary px-5 py-2 text-sm mt-4">Save settings</button>
             </div>
+            {!isLive&&<div className="bg-charcoal border border-honey/10 rounded-2xl p-5">
+              <h3 className="font-medium mb-3">Change admin password</h3>
+              <div className="space-y-2 max-w-sm">
+                <input type="password" value={cpOld} onChange={e=>setCpOld(e.target.value)} className={inp} placeholder="Current password"/>
+                <input type="password" value={cpNew} onChange={e=>setCpNew(e.target.value)} className={inp} placeholder="New password (min 4)"/>
+                <button onClick={()=>{ if(onChangePassword&&onChangePassword(cpOld,cpNew)){ setCpOld('');setCpNew(''); } }} className="btn btn-primary px-5 py-2 text-sm">Update password</button>
+              </div>
+            </div>}
+            {isLive&&<div className="bg-charcoal border border-honey/10 rounded-2xl p-5"><h3 className="font-medium mb-1">Admin password</h3><p className="text-xs text-cream/40">You're signed in via Supabase Auth — change your password from the Supabase dashboard (Authentication → Users).</p></div>}
             <div className="bg-charcoal border border-honey/10 rounded-2xl p-5">
               <h3 className="font-medium mb-2">Reset</h3>
               <button onClick={()=>{if(confirm('Reset all products to defaults?')){persist(PRODUCTS);alert('Products reset.');}}} className="text-sm text-clay-light hover:underline">Reset products to defaults</button>
@@ -1703,6 +1875,9 @@ function App(){
   const [settings,setSettings]=useState(()=>JSON.parse(localStorage.getItem('ll_settings'))||SETTINGS_DEFAULT);
   const [discounts,setDiscounts]=useState(()=>JSON.parse(localStorage.getItem('ll_discounts'))||DISCOUNTS);
   const [notifications,setNotifications]=useState(()=>JSON.parse(localStorage.getItem('ll_notifs'))||[]);
+  const [reviews,setReviews]=useState(()=>JSON.parse(localStorage.getItem('ll_reviews'))||[]);
+  const [announcements,setAnnouncements]=useState(()=>JSON.parse(localStorage.getItem('ll_announcements'))||[]);
+  const [ratePrompt,setRatePrompt]=useState(null); // {order} awaiting a rating
   const [selected,setSelected]=useState(products[0]);
   const [color,setColor]=useState(products[0].colors[0]);
   const [pattern,setPattern]=useState(products[0].patterns[0]);
@@ -1726,12 +1901,26 @@ function App(){
   // Load live data from Supabase (or localStorage in demo mode) on mount
   useEffect(()=>{ (async()=>{
     try{
-      const [prods,ords,notifs]=await Promise.all([db.getProducts(),db.getOrders(),db.getNotifs()]);
+      const [prods,ords,notifs,revs,anns]=await Promise.all([db.getProducts(),db.getOrders(),db.getNotifs(),db.getReviews(),db.getAnnouncements()]);
       if(prods&&prods.length){ setProducts(prods); }
       setOrders(ords||[]);
       setNotifications(notifs||[]);
+      setReviews(revs||[]);
+      setAnnouncements(anns||[]);
     }catch(e){ console.warn('Data load failed, using local cache',e); }
   })(); },[]);
+  useEffect(()=>{ if(!db.live) localStorage.setItem('ll_reviews',JSON.stringify(reviews)); },[reviews]);
+  useEffect(()=>{ if(!db.live) localStorage.setItem('ll_announcements',JSON.stringify(announcements)); },[announcements]);
+  const addAnnouncement=async(text)=>{ const a={text,date:new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short'})}; const saved=await db.addAnnouncement(a).catch(()=>a); setAnnouncements([saved||a,...announcements]); fireToast('Announcement published'); };
+  const deleteAnnouncement=async(id)=>{ setAnnouncements(announcements.filter(a=>a.id!==id)); await db.deleteAnnouncement(id).catch(()=>{}); };
+  // Auto-prompt the buyer to rate a delivered, not-yet-reviewed order they own (matched by saved email).
+  useEffect(()=>{
+    if(loading||ratePrompt) return;
+    const myEmail=(localStorage.getItem('ll_my_email')||'').toLowerCase();
+    if(!myEmail) return;
+    const mine=orders.find(o=>o.status==='Delivered' && !o.reviewed && o.customer.email.toLowerCase()===myEmail);
+    if(mine) setRatePrompt({order:mine});
+  },[orders,loading,ratePrompt]);
   useEffect(()=>{ if(!db.live) localStorage.setItem('ll_products',JSON.stringify(products)); },[products]);
   useEffect(()=>{ if(!db.live) localStorage.setItem('ll_orders',JSON.stringify(orders)); },[orders]);
   useEffect(()=>localStorage.setItem('ll_settings',JSON.stringify(settings)),[settings]);
@@ -1746,7 +1935,7 @@ function App(){
   const fireToast=(m)=>{setToast(m);setTimeout(()=>setToast(''),2200);};
   const pick=(p)=>{setSelected(p);const init={};partsForProduct(p).forEach(([k])=>init[k]=p.colors[0]);setPartColors(init);setColor(p.colors[0]);setPattern(p.patterns[0]);setSize(p.sizes[0]);setQuick(null);document.getElementById('studio')?.scrollIntoView({behavior:'smooth'});};
   const price=Math.round(selected.basePrice*size.mult);
-  const addCart=()=>{ if(!selected.inStock)return; setCart([...cart,{productId:selected.id,productName:selected.name,color,pattern,sizeName:size.name,partColors:{...partColors},price,qty:1}]); setAddFx(true);setBounce(true);fireToast('Added to cart'); setTimeout(()=>{setAddFx(false);setBounce(false);},1100); };
+  const addCart=(snapshot)=>{ if(!selected.inStock)return; const snap=(typeof snapshot==='string')?snapshot:''; setCart([...cart,{productId:selected.id,productName:selected.name,color,pattern,sizeName:size.name,partColors:{...partColors},snapshot:snap,price,qty:1}]); setAddFx(true);setBounce(true);fireToast('Added to cart'); setTimeout(()=>{setAddFx(false);setBounce(false);},1100); };
   const addWish=()=>{setWishlist([...wishlist,{productId:selected.id,productName:selected.name,color,pattern,sizeName:size.name}]);fireToast('Saved to wishlist');};
   const moveWish=(i)=>{const w=wishlist[i];const p=products.find(x=>x.id===w.productId);if(p){const s=p.sizes.find(s=>s.name===w.sizeName)||p.sizes[0];setCart([...cart,{...w,price:Math.round(p.basePrice*s.mult),qty:1}]);fireToast('Added to cart');}setWishlist(wishlist.filter((_,j)=>j!==i));};
   const applyDisc=()=>{const c=discCode.trim().toUpperCase();if(discounts[c]){setDiscountVal(discounts[c]);setDiscErr('');fireToast(discounts[c]+'% off applied!');}else{setDiscountVal(0);setDiscErr('Invalid code');}};
@@ -1759,7 +1948,8 @@ function App(){
       order.payment=pay;
       // 2) Save the order to the cloud (Supabase) — appears in admin on any device
       await db.addOrder(order);
-      // 3) Update UI
+      // 3) Update UI + remember this buyer's email (to prompt for a review after delivery)
+      try{ localStorage.setItem('ll_my_email', (customer.email||'').toLowerCase()); }catch(e){}
       setOrders([...orders,order]); setCart([]); setDiscountVal(0); setDiscCode(''); setReceipt(order); setCheckout(null);
       fireToast(pay.paid?'Payment received — order placed!':'Order placed — thank you!');
     }catch(err){
@@ -1768,13 +1958,45 @@ function App(){
   };
   const share=()=>{ const url=`${location.origin}${location.pathname}?p=${selected.id}&c=${color.replace('#','')}&pat=${pattern}`; if(navigator.share){navigator.share({title:'My crochet design',url}).catch(()=>{});}else{navigator.clipboard?.writeText(url);fireToast('Design link copied');} };
   const notify=async(product)=>{ const em=prompt("Enter your email and we'll let you know when it's back in stock:"); if(em){ const n={email:em,productName:product.name,date:new Date().toLocaleDateString('en-IN')}; try{ await db.addNotif(n); }catch(e){} setNotifications([n,...notifications]); fireToast('We\'ll notify you when it\'s back'); } };
+  // Customer submits a rating for a delivered order -> one pending review per product.
+  const submitReview=async(order, rating, text)=>{
+    const date=new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+    const seen={}; const made=[];
+    for(const it of order.items){
+      if(seen[it.productId]) continue; seen[it.productId]=1;
+      const rv={ orderId:order.id, productId:it.productId, productName:it.productName, author:order.customer.name, rating, text, date, status:'pending' };
+      try{ const saved=await db.addReview(rv); made.push(saved||rv); }catch(e){ made.push(rv); }
+    }
+    try{ await db.markOrderReviewed(order.id); }catch(e){}
+    setReviews([...made,...reviews]);
+    setOrders(orders.map(o=>o.id===order.id?{...o,reviewed:true}:o));
+    setRatePrompt(null);
+    fireToast('Thank you for your review!');
+  };
+  // Admin moderates a review: approve -> show on storefront; reject -> hide.
+  const moderateReview=async(id,status)=>{
+    setReviews(reviews.map(r=>r.id===id?{...r,status}:r));
+    try{ await db.updateReviewStatus(id,status); }catch(e){}
+    // when approving, also attach it to the product's on-site reviews + refresh rating
+    if(status==='approved'){
+      const rv=reviews.find(r=>r.id===id); if(rv){
+        const next=products.map(p=>{
+          if(p.id!==rv.productId) return p;
+          const list=[...(p.reviews||[]), {author:rv.author,rating:rv.rating,text:rv.text}];
+          const avg=Math.round(list.reduce((s,x)=>s+x.rating,0)/list.length);
+          return {...p, reviews:list, rating:avg};
+        });
+        setProducts(next); db.saveProducts(next).catch(()=>{});
+      }
+    }
+  };
 
   if(loading)return <Preloader onDone={()=>setLoading(false)}/>;
   return (
     <div className="min-h-screen bg-base">
       <a href="#top" className="skip-link">Skip to content</a>
       <Toast msg={toast}/>
-      <Navbar cartCount={cart.reduce((s,i)=>s+i.qty,0)} wishCount={wishlist.length} onCart={()=>setCartOpen(true)} onWish={()=>setWishOpen(true)} scrolled={scrolled} bounce={bounce}/>
+      <Navbar cartCount={cart.reduce((s,i)=>s+i.qty,0)} wishCount={wishlist.length} onCart={()=>setCartOpen(true)} onWish={()=>setWishOpen(true)} scrolled={scrolled} bounce={bounce} announcements={announcements}/>
       <main>
         <Hero vis={heroVis}/>
         <Press/>
@@ -1782,13 +2004,13 @@ function App(){
         <Studio products={products} selected={selected} setSelected={setSelected} color={color} setColor={setColor} pattern={pattern} setPattern={setPattern} size={size} setSize={setSize} partColors={partColors} setPartColors={setPartColors} onAdd={addCart} onWish={addWish} onShare={share} addFx={addFx}/>
         <Stats/>
         <HowItWorks/>
-        <Testimonials/>
+        <Testimonials reviews={reviews}/>
         <Gallery/>
         <FAQ/>
         <Story catImage={settings.catImage}/>
         <Newsletter/>
       </main>
-      <Footer onTrack={()=>setTrack(true)} adminProps={{products,setProducts,orders,setOrders,settings,setSettings,discounts,setDiscounts,notifications,setNotifications}}/>
+      <Footer onTrack={()=>setTrack(true)} adminProps={{products,setProducts,orders,setOrders,settings,setSettings,discounts,setDiscounts,notifications,setNotifications,reviews,moderateReview,announcements,addAnnouncement,deleteAnnouncement}}/>
 
       {/* sticky mobile buy bar */}
       <div className={`buybar md:hidden ${showBuyBar&&!cartOpen?'show':''}`}>
@@ -1804,12 +2026,41 @@ function App(){
       <Checkout step={checkout} setStep={setCheckout} cart={cart} total={total} onPlace={place}/>
       {receipt&&<Receipt order={receipt} onClose={()=>setReceipt(null)}/>}
       <TrackModal open={track} onClose={()=>setTrack(false)} orders={orders}/>
-      <a href="https://wa.me/919876543210?text=Hi%20Looped%20%26%20Lovely!" target="_blank" className="wa" aria-label="WhatsApp"><svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg></a>
+      <RatingPopup order={ratePrompt?.order} onClose={()=>setRatePrompt(null)} onSubmit={submitReview}/>
+      <a href="https://www.instagram.com/looped.and.lovely_01" target="_blank" rel="noopener noreferrer" className="wa" aria-label="Follow us on Instagram"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><rect x="2" y="2" width="20" height="20" rx="5.5" ry="5.5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.6" cy="6.4" r="1.2" fill="white" stroke="none"/></svg></a>
     </div>
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+// ── ERROR BOUNDARY (one crash won't blank the whole site) ──
+class ErrorBoundary extends React.Component {
+  constructor(p){ super(p); this.state={err:null}; }
+  static getDerivedStateFromError(err){ return {err}; }
+  componentDidCatch(err,info){ console.error('App error:',err,info); }
+  render(){
+    if(this.state.err) return (
+      <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',padding:'2rem',textAlign:'center',background:'#FBF5EC',color:'#2E2118',fontFamily:'Inter,sans-serif'}}>
+        <div style={{maxWidth:'420px'}}>
+          <div style={{fontSize:'2.5rem'}}>🧶</div>
+          <h1 style={{fontFamily:'Fraunces,serif',fontSize:'1.6rem',marginTop:'0.5rem'}}>Something slipped a stitch</h1>
+          <p style={{color:'#8A7257',margin:'0.75rem 0 1.25rem'}}>A small hiccup loaded the page incorrectly. Please reload — your cart is saved.</p>
+          <button onClick={()=>location.reload()} style={{background:'#B5552F',color:'#fff',border:'none',borderRadius:'999px',padding:'0.8rem 1.6rem',fontWeight:600,cursor:'pointer'}}>Reload page</button>
+        </div>
+      </div>
+    );
+    return this.props.children;
+  }
+}
+
+// CDN dependency guard — show a friendly message if a core library failed to load.
+(function(){
+  const ok = typeof React!=='undefined' && typeof ReactDOM!=='undefined' && typeof THREE!=='undefined';
+  if(!ok){
+    document.getElementById('root').innerHTML='<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;text-align:center;font-family:sans-serif;background:#FBF5EC;color:#2E2118"><div><div style="font-size:2.5rem">🧶</div><h1 style="font-family:Georgia,serif">Couldn\'t load Looped &amp; Lovely</h1><p style="color:#8A7257">A required resource didn\'t load (check your connection) and the page needs to be online for the first visit.</p><button onclick="location.reload()" style="background:#B5552F;color:#fff;border:none;border-radius:999px;padding:.8rem 1.6rem;font-weight:600;cursor:pointer">Try again</button></div></div>';
+    return;
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(<ErrorBoundary><App/></ErrorBoundary>);
+})();
 
 </script>
 <script>
