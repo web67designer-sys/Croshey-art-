@@ -294,9 +294,24 @@ const db = {
   },
   async saveProducts(list){
     lsSet('ll_products',list); // always cache locally
-    if(!supa) return;
+    if(!supa) return {ok:true};
     const rows=list.map(p=>({ id:p.id, base_price:p.basePrice, in_stock:p.inStock, data:p }));
-    await supa.from('products').upsert(rows);
+    const { error } = await supa.from('products').upsert(rows);
+    if(error){ console.warn('saveProducts',error.message); return {ok:false,error:error.message}; }
+    return {ok:true};
+  },
+  // SETTINGS (site-wide, e.g. story image) — stored as a single row id=1
+  async getSettings(){
+    if(!supa) return lsGet('ll_settings', null);
+    const { data } = await supa.from('settings').select('data').eq('id',1).maybeSingle();
+    return data?data.data:null;
+  },
+  async saveSettings(s){
+    lsSet('ll_settings',s);
+    if(!supa) return {ok:true};
+    const { error } = await supa.from('settings').upsert({ id:1, data:s });
+    if(error){ console.warn('saveSettings',error.message); return {ok:false,error:error.message}; }
+    return {ok:true};
   },
   // NOTIFY (back in stock)
   async getNotifs(){
@@ -882,13 +897,18 @@ function Navbar({cartCount,wishCount,onCart,onWish,scrolled,bounce,announcements
             <button onClick={openBell} className="relative p-2 rounded-full hover:bg-base-2 transition-colors" aria-label="Notifications">{Ic.bell()}{unread&&<span className="absolute top-1 right-1.5 w-2 h-2 rounded-full bg-clay ring-2 ring-base animate-pulse"/>}</button>
             {bellOpen&&<>
               <div className="fixed inset-0 z-40" onClick={()=>setBellOpen(false)}/>
-              <div className="absolute right-0 mt-2 w-72 max-w-[85vw] bg-cream rounded-2xl shadow-2xl border border-muted/15 z-50 overflow-hidden">
-                <div className="px-4 py-3 border-b border-muted/10 font-semibold text-sm">Notifications</div>
-                <div className="max-h-72 overflow-y-auto">
-                  {announcements.length===0
-                    ? <p className="px-4 py-6 text-center text-sm text-muted">No notifications yet.</p>
-                    : announcements.map((a,i)=><div key={a.id||i} className="px-4 py-3 border-b border-muted/5 last:border-0"><p className="text-sm text-ink">{a.text}</p><p className="text-[11px] text-muted mt-1">{a.date}</p></div>)}
+              <div className="absolute right-0 mt-3 w-80 max-w-[88vw] bg-cream rounded-2xl shadow-2xl border border-clay/15 z-50 overflow-hidden origin-top-right animate-scale-in">
+                {/* gradient header */}
+                <div className="px-4 py-3 flex items-center justify-between" style={{background:'linear-gradient(110deg,#B5552F,#C26B4A)'}}>
+                  <span className="flex items-center gap-2 text-cream font-semibold text-sm">{Ic.bell()} Notifications</span>
+                  {announcements.length>0&&<span className="bg-cream/25 text-cream text-[11px] font-semibold px-2 py-0.5 rounded-full">{announcements.length}</span>}
                 </div>
+                <div className="max-h-80 overflow-y-auto">
+                  {announcements.length===0
+                    ? <div className="px-4 py-10 text-center"><div className="mx-auto w-12 h-12 rounded-full bg-base-2 flex items-center justify-center text-muted">{Ic.bell()}</div><p className="text-sm text-muted mt-3">You're all caught up</p><p className="text-xs text-muted/70 mt-0.5">New updates will show here.</p></div>
+                    : announcements.map((a,i)=><div key={a.id||i} className="px-4 py-3.5 flex gap-3 border-b border-muted/8 last:border-0 hover:bg-base-2/50 transition-colors"><span className="mt-1.5 w-2 h-2 rounded-full bg-clay flex-shrink-0"/><div className="min-w-0"><p className="text-sm text-ink leading-snug">{a.text}</p><p className="text-[11px] text-muted mt-1">{a.date}</p></div></div>)}
+                </div>
+                {announcements.length>0&&<div className="px-4 py-2.5 border-t border-muted/10 bg-base-2/40 text-center"><a href="https://www.instagram.com/looped.and.lovely_01" target="_blank" rel="noopener noreferrer" className="text-xs text-clay font-medium hover:underline">Follow us for more →</a></div>}
               </div>
             </>}
           </div>
@@ -1587,10 +1607,11 @@ function Admin(props){
 
 const Stat=({l,v,sub})=> <div className="bg-charcoal border border-honey/10 rounded-2xl p-5"><p className="text-[11px] text-cream/40 uppercase tracking-wide">{l}</p><p className="text-3xl font-bold mt-2 text-cream">{v}</p>{sub&&<p className="text-xs text-honey/70 mt-1">{sub}</p>}</div>;
 
-function AdminDashboard({products,setProducts,orders,setOrders,settings,setSettings,discounts,setDiscounts,notifications=[],setNotifications,reviews=[],moderateReview,announcements=[],addAnnouncement,deleteAnnouncement,onClose,onLogout,onChangePassword,isLive}){
+function AdminDashboard({products,setProducts,orders,setOrders,settings,setSettings,saveSettingsCloud,discounts,setDiscounts,notifications=[],setNotifications,reviews=[],moderateReview,announcements=[],addAnnouncement,deleteAnnouncement,onClose,onLogout,onChangePassword,isLive}){
   const [cpOld,setCpOld]=useState(''),[cpNew,setCpNew]=useState('');
   const [annText,setAnnText]=useState('');
   const [bigImg,setBigImg]=useState(null);
+  const [advOpen,setAdvOpen]=useState(false);
   const [tab,setTab]=useState('dash');
   const [menuOpen,setMenuOpen]=useState(false);
   const [orderSearch,setOrderSearch]=useState('');
@@ -1621,7 +1642,7 @@ function AdminDashboard({products,setProducts,orders,setOrders,settings,setSetti
     });
   },[orders,tab]);
 
-  const persist=(list)=>{ setProducts(list); db.saveProducts(list).catch(()=>{}); };
+  const persist=async(list)=>{ setProducts(list); const r=await db.saveProducts(list); if(r&&r.ok===false){ alert('Saved locally, but cloud sync failed (changes may not show for everyone):\n'+r.error); } };
   const updStatus=(id,s)=>{ const next=orders.map(o=>o.id===id?{...o,status:s}:o); setOrders(next); db.updateOrderStatus(id,s).catch(()=>{}); };
   const toggleStock=id=>persist(products.map(p=>p.id===id?{...p,inStock:!p.inStock}:p));
   const delProduct=id=>{ if(confirm('Delete this product?')) persist(products.filter(p=>p.id!==id)); };
@@ -1718,7 +1739,7 @@ function AdminDashboard({products,setProducts,orders,setOrders,settings,setSetti
               <h2 className="font-display text-xl font-semibold">Orders ({fOrders.length})</h2>
               <div className="flex gap-2"><input placeholder="Search ID or name…" value={orderSearch} onChange={e=>setOrderSearch(e.target.value)} className="px-3 py-2 bg-charcoal border border-honey/20 rounded-lg text-sm text-cream w-48"/><button onClick={exportCSV} className="text-sm text-honey hover:underline">Export CSV</button></div>
             </div>
-            <div className="bg-charcoal border border-honey/10 rounded-xl overflow-x-auto"><table className="w-full text-sm min-w-[680px]"><thead className="text-cream/40 border-b border-honey/10"><tr><th className="text-left p-3">ID</th><th className="text-left p-3">Customer</th><th className="text-left p-3">Date</th><th className="text-left p-3">Design</th><th className="text-right p-3">Total</th><th className="p-3">Status</th></tr></thead><tbody>{fOrders.slice().reverse().map((o,i)=><tr key={i} className="border-t border-honey/5 hover:bg-cream/5 align-top"><td className="p-3 font-mono text-honey">{o.id}</td><td className="p-3">{o.customer.name}<br/><span className="text-xs text-cream/40">{o.customer.email}</span></td><td className="p-3 text-cream/60 whitespace-nowrap">{o.date}</td><td className="p-3"><div className="flex gap-1.5">{o.items.map((it,j)=>it.snapshot?<img key={j} src={it.snapshot} alt={it.productName} title={`${it.productName} (${it.sizeName})`} onClick={()=>setBigImg(it.snapshot)} className="w-12 h-12 rounded-lg object-cover border border-honey/20 cursor-zoom-in bg-obsidian"/>:<div key={j} title={it.productName} className="w-12 h-12 rounded-lg border border-honey/10 flex items-center justify-center text-[9px] text-cream/30 text-center leading-tight p-1">{it.productName.split(' ')[0]}</div>)}</div></td><td className="p-3 text-right whitespace-nowrap">₹{Math.round(o.total).toLocaleString('en-IN')}</td><td className="p-3"><select value={o.status} onChange={e=>updStatus(o.id,e.target.value)} className="bg-obsidian border border-honey/20 rounded px-2 py-1 text-xs"><option>Processing</option><option>Shipped</option><option>Delivered</option></select></td></tr>)}{fOrders.length===0&&<tr><td colSpan="6" className="p-6 text-center text-cream/40">No orders yet</td></tr>}</tbody></table></div>
+            <div className="bg-charcoal border border-honey/10 rounded-xl overflow-x-auto"><table className="w-full text-sm min-w-[760px]"><thead className="text-cream/40 border-b border-honey/10"><tr><th className="text-left p-3">ID</th><th className="text-left p-3">Customer</th><th className="text-left p-3">Date</th><th className="text-left p-3">Design</th><th className="text-left p-3">Gift</th><th className="text-right p-3">Total</th><th className="p-3">Status</th></tr></thead><tbody>{fOrders.slice().reverse().map((o,i)=><tr key={i} className="border-t border-honey/5 hover:bg-cream/5 align-top"><td className="p-3 font-mono text-honey">{o.id}</td><td className="p-3">{o.customer.name}<br/><span className="text-xs text-cream/40">{o.customer.email}</span></td><td className="p-3 text-cream/60 whitespace-nowrap">{o.date}</td><td className="p-3"><div className="flex gap-1.5">{o.items.map((it,j)=>it.snapshot?<img key={j} src={it.snapshot} alt={it.productName} title={`${it.productName} (${it.sizeName})`} onClick={()=>setBigImg(it.snapshot)} className="w-12 h-12 rounded-lg object-cover border border-honey/20 cursor-zoom-in bg-obsidian"/>:<div key={j} title={it.productName} className="w-12 h-12 rounded-lg border border-honey/10 flex items-center justify-center text-[9px] text-cream/30 text-center leading-tight p-1">{it.productName.split(' ')[0]}</div>)}</div></td><td className="p-3 max-w-[180px]">{o.gift?<div><span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wide bg-plum/25 text-plum px-2 py-0.5 rounded-full">{Ic.gift()} Gift</span>{o.giftNote&&<p className="text-xs text-cream/60 mt-1.5 italic">"{o.giftNote}"</p>}</div>:<span className="text-cream/25 text-xs">—</span>}</td><td className="p-3 text-right whitespace-nowrap">₹{Math.round(o.total).toLocaleString('en-IN')}</td><td className="p-3"><select value={o.status} onChange={e=>updStatus(o.id,e.target.value)} className="bg-obsidian border border-honey/20 rounded px-2 py-1 text-xs"><option>Processing</option><option>Shipped</option><option>Delivered</option></select></td></tr>)}{fOrders.length===0&&<tr><td colSpan="7" className="p-6 text-center text-cream/40">No orders yet</td></tr>}</tbody></table></div>
           </div>}
           {bigImg&&<div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 p-6" onClick={()=>setBigImg(null)}><img src={bigImg} alt="Customer design" className="max-w-full max-h-[90vh] rounded-xl"/></div>}
 
@@ -1784,7 +1805,7 @@ function AdminDashboard({products,setProducts,orders,setOrders,settings,setSetti
                 <div className="flex-1 space-y-2"><input value={setImg} onChange={e=>setSetImg(e.target.value)} className={inp} placeholder="Image URL"/><label className="text-xs bg-honey/10 text-honey px-3 py-1.5 rounded-lg cursor-pointer inline-block">Upload<input type="file" accept="image/*" onChange={e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>setSetImg(ev.target.result);r.readAsDataURL(f);}} className="hidden"/></label></div>
                 {setImg&&<img src={setImg} alt="" className="w-20 h-20 rounded-lg object-cover border border-honey/20"/>}
               </div>
-              <button onClick={()=>{setSettings({...settings,catImage:setImg});alert('Saved — refresh to see it on the site.');}} className="btn btn-primary px-5 py-2 text-sm mt-4">Save settings</button>
+              <button onClick={()=>saveSettingsCloud({...settings,catImage:setImg})} className="btn btn-primary px-5 py-2 text-sm mt-4">Save settings</button>
             </div>
             {!isLive&&<div className="bg-charcoal border border-honey/10 rounded-2xl p-5">
               <h3 className="font-medium mb-3">Change admin password</h3>
@@ -1804,32 +1825,49 @@ function AdminDashboard({products,setProducts,orders,setOrders,settings,setSetti
       </div>
 
       {showAdd&&<div className="fixed inset-0 z-[80] bg-obsidian/80 backdrop-blur flex items-center justify-center p-4" onClick={()=>setShowAdd(false)}><div className="bg-obsidian border border-honey/20 rounded-2xl p-6 w-full max-w-lg max-h-[88vh] overflow-y-auto space-y-3" onClick={e=>e.stopPropagation()}>
-        <h3 className="font-display text-lg font-semibold">New product</h3>
-        <input placeholder="Name" value={np.name} onChange={e=>setNp({...np,name:e.target.value})} className={inp}/>
-        <div className="grid grid-cols-2 gap-2"><select value={np.category} onChange={e=>setNp({...np,category:e.target.value})} className={inp}>{['Toys','Accessories','Bags','Home'].map(c=><option key={c}>{c}</option>)}</select><select value={np.model} onChange={e=>setNp({...np,model:e.target.value})} className={inp} title="Preset shape (used if no custom shape is built)">{['bunny','beanie','bag','coaster','blanket','earrings','hanger'].map(m=><option key={m}>{m}</option>)}</select></div>
-        <ShapeBuilder value={np.geometry} onChange={g=>setNp({...np,geometry:g})}/>
-        <Model3DSource obj={np} set={setNp}/>
-        <input type="number" placeholder="Base price" value={np.basePrice} onChange={e=>setNp({...np,basePrice:e.target.value})} className={inp}/>
-        <textarea placeholder="Description" value={np.description} onChange={e=>setNp({...np,description:e.target.value})} className={inp} rows="2"/>
-        <div className="flex flex-col gap-2">
-          <label className="text-xs text-cream/50">Product image — <b className="text-honey">transparent PNG</b> only</label>
-          <div className="flex items-center gap-3">
-            <label className="text-xs bg-honey/10 text-honey px-3 py-2 rounded-lg cursor-pointer text-center">Upload PNG<input type="file" accept="image/png" onChange={e=>upload(e,setNp,np)} className="hidden"/></label>
-            {np.image&&<img src={np.image} alt="" className="w-16 h-16 rounded-lg object-contain bg-[conic-gradient(#0000_90deg,#ffffff14_0_180deg,#0000_0_270deg,#ffffff14_0)] bg-[length:12px_12px]"/>}
-          </div>
+        <h3 className="font-display text-lg font-semibold">Add a new product</h3>
+        <p className="text-xs text-cream/40 -mt-1">Just fill the basics — everything else has sensible defaults you can change later.</p>
+
+        {/* ── ESSENTIALS ── */}
+        <label className="text-xs text-cream/50 block">Product name</label>
+        <input placeholder="e.g. Amigurumi Cat" value={np.name} onChange={e=>setNp({...np,name:e.target.value})} className={inp}/>
+
+        <div className="grid grid-cols-2 gap-2">
+          <div><label className="text-xs text-cream/50 block mb-1">Category</label><select value={np.category} onChange={e=>setNp({...np,category:e.target.value})} className={inp}>{['Toys','Accessories','Bags','Home'].map(c=><option key={c}>{c}</option>)}</select></div>
+          <div><label className="text-xs text-cream/50 block mb-1">Price (₹)</label><input type="number" placeholder="800" value={np.basePrice} onChange={e=>setNp({...np,basePrice:e.target.value})} className={inp}/></div>
         </div>
-        <div className="flex flex-col gap-2">
-          <label className="text-xs text-cream/50">Custom backdrop (shown behind the product in the studio)</label>
-          <div className="flex flex-wrap gap-2">{Object.keys(BACKDROPS).map(b=><button key={b} onClick={()=>setNp({...np,backdrop:b,backdropImage:''})} className={`w-8 h-8 rounded-lg border-2 ${np.backdrop===b&&!np.backdropImage?'border-honey':'border-transparent'}`} style={{background:BACKDROPS[b]}} title={b}/>)}
-            <label className={`w-8 h-8 rounded-lg border-2 ${np.backdropImage?'border-honey':'border-honey/30'} flex items-center justify-center cursor-pointer text-honey text-xs`} title="Upload backdrop">+<input type="file" accept="image/*" onChange={e=>uploadBg(e,setNp,np)} className="hidden"/></label>
-          </div>
+
+        <label className="text-xs text-cream/50 block">Photo <span className="text-cream/30">(PNG — used on the shop card)</span></label>
+        <div className="flex items-center gap-3">
+          <label className="text-xs bg-honey/10 text-honey px-3 py-2 rounded-lg cursor-pointer">Upload PNG<input type="file" accept="image/png" onChange={e=>upload(e,setNp,np)} className="hidden"/></label>
+          {np.image&&<img src={np.image} alt="" className="w-14 h-14 rounded-lg object-contain bg-[conic-gradient(#0000_90deg,#ffffff14_0_180deg,#0000_0_270deg,#ffffff14_0)] bg-[length:12px_12px]"/>}
         </div>
-        <input placeholder="Colours (comma separated hex)" value={np.colors} onChange={e=>setNp({...np,colors:e.target.value})} className={inp}/>
-        <input placeholder="Patterns (comma: solid,striped,…)" value={np.patterns} onChange={e=>setNp({...np,patterns:e.target.value})} className={inp}/>
-        <textarea placeholder="Sizes JSON" value={np.sizes} onChange={e=>setNp({...np,sizes:e.target.value})} className={inp} rows="2"/>
-        <div className="grid grid-cols-2 gap-2"><input placeholder="Material" value={np.material} onChange={e=>setNp({...np,material:e.target.value})} className={inp}/><input placeholder="Care" value={np.care} onChange={e=>setNp({...np,care:e.target.value})} className={inp}/><input placeholder="Weight" value={np.weight} onChange={e=>setNp({...np,weight:e.target.value})} className={inp}/><input placeholder="Hook" value={np.hook} onChange={e=>setNp({...np,hook:e.target.value})} className={inp}/></div>
-        <input placeholder="Yarn brand" value={np.yarnBrand} onChange={e=>setNp({...np,yarnBrand:e.target.value})} className={inp}/>
-        <div className="flex gap-3 pt-1"><button onClick={()=>setShowAdd(false)} className="btn btn-ghost flex-1 py-2.5 text-cream">Cancel</button><button onClick={addProduct} className="btn btn-primary flex-1 py-2.5">Create</button></div>
+
+        <label className="text-xs text-cream/50 block">Colours customers can pick</label>
+        <input placeholder="#E8D5C0, #D98C8C, #9DBE9A" value={np.colors} onChange={e=>setNp({...np,colors:e.target.value})} className={inp}/>
+
+        {/* ── ADVANCED (collapsed) ── */}
+        <button type="button" onClick={()=>setAdvOpen(o=>!o)} className="w-full flex items-center justify-between text-sm text-honey bg-honey/5 hover:bg-honey/10 rounded-lg px-3 py-2.5 mt-1">
+          <span>Advanced — 3D shape, sizes, details</span><span className={`transition-transform ${advOpen?'rotate-45':''}`}>+</span>
+        </button>
+        {advOpen&&<div className="space-y-3 border border-honey/10 rounded-xl p-3">
+          <label className="text-xs text-cream/50 block">Description</label>
+          <textarea placeholder="A short description for the product page" value={np.description} onChange={e=>setNp({...np,description:e.target.value})} className={inp} rows="2"/>
+          <label className="text-xs text-cream/50 block">3D preset shape (used in the studio)</label>
+          <select value={np.model} onChange={e=>setNp({...np,model:e.target.value})} className={inp}>{['bunny','beanie','bag','coaster','blanket','earrings','hanger'].map(m=><option key={m}>{m}</option>)}</select>
+          <ShapeBuilder value={np.geometry} onChange={g=>setNp({...np,geometry:g})}/>
+          <Model3DSource obj={np} set={setNp}/>
+          <label className="text-xs text-cream/50 block">Studio backdrop</label>
+          <div className="flex flex-wrap gap-2">{Object.keys(BACKDROPS).map(b=><button key={b} onClick={()=>setNp({...np,backdrop:b,backdropImage:''})} className={`w-8 h-8 rounded-lg border-2 ${np.backdrop===b&&!np.backdropImage?'border-honey':'border-transparent'}`} style={{background:BACKDROPS[b]}} title={b}/>)}<label className={`w-8 h-8 rounded-lg border-2 ${np.backdropImage?'border-honey':'border-honey/30'} flex items-center justify-center cursor-pointer text-honey text-xs`} title="Upload backdrop">+<input type="file" accept="image/*" onChange={e=>uploadBg(e,setNp,np)} className="hidden"/></label></div>
+          <label className="text-xs text-cream/50 block">Patterns</label>
+          <input placeholder="solid, striped, speckled" value={np.patterns} onChange={e=>setNp({...np,patterns:e.target.value})} className={inp}/>
+          <label className="text-xs text-cream/50 block">Sizes (advanced — JSON)</label>
+          <textarea placeholder='[{"name":"Standard","mult":1,"dims":"20 cm"}]' value={np.sizes} onChange={e=>setNp({...np,sizes:e.target.value})} className={inp} rows="2"/>
+          <div className="grid grid-cols-2 gap-2"><input placeholder="Material" value={np.material} onChange={e=>setNp({...np,material:e.target.value})} className={inp}/><input placeholder="Care" value={np.care} onChange={e=>setNp({...np,care:e.target.value})} className={inp}/><input placeholder="Weight" value={np.weight} onChange={e=>setNp({...np,weight:e.target.value})} className={inp}/><input placeholder="Hook" value={np.hook} onChange={e=>setNp({...np,hook:e.target.value})} className={inp}/></div>
+          <input placeholder="Yarn brand" value={np.yarnBrand} onChange={e=>setNp({...np,yarnBrand:e.target.value})} className={inp}/>
+        </div>}
+
+        <div className="flex gap-3 pt-1"><button onClick={()=>{setShowAdd(false);setAdvOpen(false);}} className="btn btn-ghost flex-1 py-2.5 text-cream">Cancel</button><button onClick={addProduct} className="btn btn-primary flex-1 py-2.5">Create product</button></div>
       </div></div>}
 
       {editing&&<div className="fixed inset-0 z-[80] bg-obsidian/80 backdrop-blur flex items-center justify-center p-4" onClick={()=>setEditing(null)}><div className="bg-obsidian border border-honey/20 rounded-2xl p-6 w-full max-w-lg max-h-[88vh] overflow-y-auto space-y-3" onClick={e=>e.stopPropagation()}>
@@ -1901,18 +1939,21 @@ function App(){
   // Load live data from Supabase (or localStorage in demo mode) on mount
   useEffect(()=>{ (async()=>{
     try{
-      const [prods,ords,notifs,revs,anns]=await Promise.all([db.getProducts(),db.getOrders(),db.getNotifs(),db.getReviews(),db.getAnnouncements()]);
+      const [prods,ords,notifs,revs,anns,sett]=await Promise.all([db.getProducts(),db.getOrders(),db.getNotifs(),db.getReviews(),db.getAnnouncements(),db.getSettings()]);
       if(prods&&prods.length){ setProducts(prods); }
       setOrders(ords||[]);
       setNotifications(notifs||[]);
       setReviews(revs||[]);
       setAnnouncements(anns||[]);
+      if(sett) setSettings(s=>({...s,...sett})); // site-wide settings from cloud
     }catch(e){ console.warn('Data load failed, using local cache',e); }
   })(); },[]);
   useEffect(()=>{ if(!db.live) localStorage.setItem('ll_reviews',JSON.stringify(reviews)); },[reviews]);
   useEffect(()=>{ if(!db.live) localStorage.setItem('ll_announcements',JSON.stringify(announcements)); },[announcements]);
   const addAnnouncement=async(text)=>{ const a={text,date:new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short'})}; const saved=await db.addAnnouncement(a).catch(()=>a); setAnnouncements([saved||a,...announcements]); fireToast('Announcement published'); };
   const deleteAnnouncement=async(id)=>{ setAnnouncements(announcements.filter(a=>a.id!==id)); await db.deleteAnnouncement(id).catch(()=>{}); };
+  // Save site-wide settings to the cloud so changes apply for ALL visitors.
+  const saveSettingsCloud=async(s)=>{ setSettings(s); const r=await db.saveSettings(s); if(r&&r.ok===false){ alert('Saved locally, but cloud sync failed: '+r.error); } else { fireToast('Settings saved for everyone'); } };
   // Auto-prompt the buyer to rate a delivered, not-yet-reviewed order they own (matched by saved email).
   useEffect(()=>{
     if(loading||ratePrompt) return;
@@ -2010,7 +2051,7 @@ function App(){
         <Story catImage={settings.catImage}/>
         <Newsletter/>
       </main>
-      <Footer onTrack={()=>setTrack(true)} adminProps={{products,setProducts,orders,setOrders,settings,setSettings,discounts,setDiscounts,notifications,setNotifications,reviews,moderateReview,announcements,addAnnouncement,deleteAnnouncement}}/>
+      <Footer onTrack={()=>setTrack(true)} adminProps={{products,setProducts,orders,setOrders,settings,setSettings,saveSettingsCloud,discounts,setDiscounts,notifications,setNotifications,reviews,moderateReview,announcements,addAnnouncement,deleteAnnouncement}}/>
 
       {/* sticky mobile buy bar */}
       <div className={`buybar md:hidden ${showBuyBar&&!cartOpen?'show':''}`}>
